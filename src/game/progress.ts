@@ -75,11 +75,11 @@ export function touchStreak(p: Progress): Progress {
 
 /* ---------- 코인 ---------- */
 export const COIN_RULES = {
-  perFloor: 1, // 쌓은 층마다
+  floorsPerCoin: 3, // 3층마다 1개
   perPerfect: 1, // 딱 맞출 때마다 추가로
-  dailyBonus: 30, // 오늘의 도전 달성
+  dailyBonus: 20, // 오늘의 도전 달성
 } as const;
 
 export function coinsForRun(r: { score: number; perfects: number; dailyCleared: boolean }) {
-  return r.score * COIN_RULES.perFloor + r.perfects * COIN_RULES.perPerfect + (r.dailyCleared ? COIN_RULES.dailyBonus : 0);
+  return Math.floor(r.score / COIN_RULES.floorsPerCoin) + r.perfects * COIN_RULES.perPerfect + (r.dailyCleared ? COIN_RULES.dailyBonus : 0);
 }
