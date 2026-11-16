@@ -552,3 +552,54 @@ button:focus-visible {
 .streak-bonus b {
   color: #c9921a;
 }
+
+/* 카드가 왼쪽 위 상단바(최고 기록·코인·소리)를 가리지 않게 */
+.sheet {
+  padding: calc(58px + var(--safe-top)) 16px 16px;
+  overflow-y: auto;
+}
+
+/* 키가 작은 화면에서는 카드를 조금 촘촘하게 */
+@media (max-height: 720px) {
+  .card {
+    padding: 20px 18px 18px;
+    gap: 10px;
+  }
+
+  .card h1 {
+    font-size: 32px;
+  }
+
+  .card h2 {
+    font-size: 24px;
+  }
+
+  .lead {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .big {
+    font-size: 64px;
+  }
+
+  .stat {
+    padding: 8px 4px;
+  }
+}
+
+@media (max-height: 720px) {
+  .shop-preview canvas {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .card.shop {
+    gap: 8px;
+    padding: 16px 14px 12px;
+  }
+
+  .card.shop .grid {
+    min-height: 96px;
+  }
+}
