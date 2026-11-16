@@ -8,6 +8,7 @@
   --accent-deep: #d94a2b;
   --mint: #2fa886;
   --muted: #7a7390;
+  --safe-top: env(safe-area-inset-top, 0px);
   --font: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   color-scheme: light;
 }
@@ -57,11 +58,10 @@ body {
 /* ---------- 상단 ---------- */
 .topbar {
   position: absolute;
-  top: calc(12px + env(safe-area-inset-top));
+  top: calc(12px + var(--safe-top));
   left: 16px;
-  right: 16px;
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
   pointer-events: none;
 }
 
@@ -80,9 +80,16 @@ button.chip {
   cursor: pointer;
 }
 
+.chip.icon {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  padding: 0;
+}
+
 .hud {
   position: absolute;
-  top: calc(52px + env(safe-area-inset-top));
+  top: calc(56px + var(--safe-top));
   left: 0;
   right: 0;
   display: flex;
@@ -128,6 +135,13 @@ button.chip {
   color: #fff;
 }
 
+.hint {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- 카드 ---------- */
 .sheet {
   position: absolute;
@@ -168,6 +182,45 @@ button.chip {
 
 .card h2 {
   font-size: 28px;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.card.small {
+  max-width: 300px;
+  padding: 24px 18px 18px;
+  gap: 12px;
+}
+
+.modal {
+  background: rgba(43, 37, 64, 0.45);
+  z-index: 10;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.row .btn {
+  font-size: 16px;
+  padding: 13px 8px;
+}
+
+.links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.links:empty {
+  display: none;
 }
 
 .lead {

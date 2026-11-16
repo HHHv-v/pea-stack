@@ -163,6 +163,26 @@ export class PeaStackGame {
     this.spawn();
   }
 
+  /** 개발용: n층까지 쌓인 상태로 바로 만들어요(스크린샷·확인용). */
+  debugBuild(n: number) {
+    if (this.phase !== 'play') return;
+    let hue = this.blocks[0].hue;
+    for (let i = 0; i < n; i++) {
+      hue = nextHue(hue);
+      const w = this.baseW * (0.9 - 0.25 * Math.random() * (i / Math.max(1, n)));
+      this.blocks.push({ x: -w / 2 + (Math.random() - 0.5) * 6, w, hue, t: -1e4, flash: -1e4 });
+    }
+    this.stage = n >= STAGE_FLOORS.space ? 2 : n >= STAGE_FLOORS.sunset ? 1 : 0;
+    this.bgF = n;
+    this.cam = Math.max(0, Math.max(this.H * 0.55, 365) - this.H * 0.8 + this.blocks.length * BH);
+    if (!this.dailyDone && this.score >= this.dailyTarget) {
+      this.dailyDone = true;
+      this.cb.onDailyCleared?.();
+    }
+    this.cb.onScore?.(this.score);
+    this.spawn();
+  }
+
   private spawn() {
     const n = this.blocks.length;
     this.cur = {
@@ -294,7 +314,9 @@ export class PeaStackGame {
       this.sound.holdPitch(cur.w / tw);
       if (cur.w >= tw * 1.9) this.release();
     }
-    const camT = Math.max(0, this.blocks.length - 5) * BH;
+    // 맨 위층이 화면 절반쯤(작은 폰에서는 HUD 아래 365px)에 오도록 카메라를 올려요
+    const topTarget = Math.max(this.H * 0.55, 365);
+    const camT = Math.max(0, topTarget - this.H * 0.8 + this.blocks.length * BH);
     this.cam += (camT - this.cam) * Math.min(1, dt * 7);
     this.bgF += (this.score - this.bgF) * Math.min(1, dt * 2.5);
     this.shake *= Math.exp(-dt * 13);

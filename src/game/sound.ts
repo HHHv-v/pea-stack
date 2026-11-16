@@ -21,6 +21,17 @@ export class Sound {
     this.ctx();
   }
 
+  /** 앱이 백그라운드로 가면 소리를 바로 멈춰요(검수 기준). */
+  suspend() {
+    this.holdStop();
+    if (this.ac && this.ac.state === 'running') void this.ac.suspend().catch(() => {});
+  }
+
+  /** 다시 돌아오면 소리를 되살려요. */
+  resume() {
+    if (this.ac && this.ac.state === 'suspended' && !this.muted) void this.ac.resume().catch(() => {});
+  }
+
   private ctx(): Ctx | null {
     if (this.muted) return null;
     try {

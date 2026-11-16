@@ -4,7 +4,18 @@
  * - 개발 서버에서는 @apps-in-toss/devtools가 SDK를 흉내 내요.
  * - 어느 쪽이든 실패하면 게임이 멈추지 않도록 조용히 대체 동작을 해요.
  */
-import { Device, Game, Storage, loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/web-framework';
+import {
+  Device,
+  Game,
+  SafeArea,
+  Screen,
+  Share,
+  Storage,
+  User,
+  graniteEvent,
+  loadFullScreenAd,
+  showFullScreenAd,
+} from '@apps-in-toss/web-framework';
 import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
 
 /**
@@ -169,4 +180,81 @@ export function showRewardedAd(): Promise<boolean> {
       finish(false);
     }
   });
+}
+
+/* ---------- 사용자 식별 ---------- */
+/**
+ * 검수 기준: 사용자 식별자를 확인·저장한 뒤 게임을 시작해요.
+ * 토스 계정마다 기록을 따로 저장하는 데 써요. 토스 앱 밖에서는 'local'을 써요.
+ */
+export async function getUserKey(): Promise<string> {
+  try {
+    if (!User.getAnonymousKey.isSupported()) return 'local';
+    const res = await User.getAnonymousKey();
+    return res && typeof res === 'object' && 'hash' in res && res.hash ? String(res.hash) : 'local';
+  } catch {
+    return 'local';
+  }
+}
+
+/* ---------- 화면 ---------- */
+/** 위쪽 안전 영역(px). 토스 앱 밖에서는 0이고, CSS env()가 대신 처리해요. */
+export function safeAreaTop(): number {
+  try {
+    return SafeArea.get()?.top ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** 플레이 중에는 화면이 꺼지지 않게 해요. 상태가 바뀔 때만 불러요. */
+export function keepAwake(enabled: boolean) {
+  attempt(() => Screen.setAwakeMode({ enabled })).catch(() => {});
+}
+
+export function lockPortrait() {
+  try {
+    if (Screen.setOrientation.isSupported()) void Screen.setOrientation({ type: 'portrait' }).catch(() => {});
+  } catch {
+    /* noop */
+  }
+}
+
+export function closeApp() {
+  attempt(() => Screen.close()).catch(() => {
+    try {
+      window.close();
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+/** 안드로이드 뒤로가기를 가로채요. 해제 함수를 돌려줘요. */
+export function onBack(handler: () => void): () => void {
+  try {
+    return graniteEvent.addEventListener('backEvent', { onEvent: handler, onError: () => {} });
+  } catch {
+    return () => {};
+  }
+}
+
+/* ---------- 공유 ---------- */
+export async function shareScore(score: number): Promise<boolean> {
+  const text = `완두콩을 ${score}층까지 올려 보냈어요! 나보다 높이 쌓을 수 있을까요?`;
+  try {
+    const link = await attempt(() => Share.createLink({ path: 'intoss://pea-stack' })).catch(() => '');
+    await attempt(() => Share.sendMessage({ message: link ? `${text}\n${link}` : text }));
+    return true;
+  } catch {
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+        return true;
+      }
+    } catch {
+      /* 취소 */
+    }
+    return false;
+  }
 }

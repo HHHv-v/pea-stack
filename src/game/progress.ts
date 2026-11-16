@@ -18,13 +18,17 @@ export interface Progress {
 
 const EMPTY: Progress = { best: 0, streak: 0, lastPlayed: '', dailyDoneOn: '', muted: false };
 
-export async function loadProgress(): Promise<Progress> {
-  const p = await loadValue<Partial<Progress>>('progress', {});
+/** 기록은 토스 사용자 키별로 따로 저장해요. */
+let storageKey = 'progress_local';
+
+export async function loadProgress(userKey: string): Promise<Progress> {
+  storageKey = `progress_${userKey}`;
+  const p = await loadValue<Partial<Progress>>(storageKey, {});
   return { ...EMPTY, ...p };
 }
 
 export function saveProgress(p: Progress) {
-  saveValue('progress', p);
+  saveValue(storageKey, p);
 }
 
 /** 오늘 처음 플레이하면 연속 출석을 갱신해요. 어제 했으면 +1, 아니면 1부터 다시. */
