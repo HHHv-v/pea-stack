@@ -25,6 +25,8 @@ export interface Progress {
   dailyTarget: number;
   muted: boolean;
   coins: number;
+  coinDay: string; // 코인 받는 판을 센 날짜
+  coinRuns: number; // 그날 코인을 받은 판 수
   owned: string[]; // 'bean:soy', 'acc:crown' 같은 형식
   bean: BeanId;
   acc: AccId;
@@ -39,6 +41,8 @@ const EMPTY: Progress = {
   dailyTarget: 10,
   muted: false,
   coins: 0,
+  coinDay: '',
+  coinRuns: 0,
   owned: [],
   bean: 'pea',
   acc: 'none',
@@ -77,9 +81,24 @@ export function touchStreak(p: Progress): Progress {
 export const COIN_RULES = {
   floorsPerCoin: 3, // 3층마다 1개
   perPerfect: 1, // 딱 맞출 때마다 추가로
-  dailyBonus: 20, // 오늘의 도전 달성
+  dailyBonus: 20, // 오늘의 도전 달성(하루 한 번, 판 수 제한과 별개)
+  runsPerDay: 2, // 층·딱 코인은 하루 첫 2판만
 } as const;
 
-export function coinsForRun(r: { score: number; perfects: number; dailyCleared: boolean }) {
-  return Math.floor(r.score / COIN_RULES.floorsPerCoin) + r.perfects * COIN_RULES.perPerfect + (r.dailyCleared ? COIN_RULES.dailyBonus : 0);
+/** 오늘 층·딱 코인을 더 받을 수 있는 판 수 */
+export function coinRunsLeft(p: Progress, today = dayKey()) {
+  const used = p.coinDay === today ? p.coinRuns : 0;
+  return Math.max(0, COIN_RULES.runsPerDay - used);
+}
+
+/** 코인 받는 판을 하나 썼다고 기록해요. */
+export function spendCoinRun(p: Progress, today = dayKey()): Progress {
+  const used = p.coinDay === today ? p.coinRuns : 0;
+  return { ...p, coinDay: today, coinRuns: used + 1 };
+}
+
+/** 한 판에서 받는 코인. earns가 false면(오늘 2판을 다 썼으면) 오늘의 도전 보상만 받아요. */
+export function coinsForRun(r: { score: number; perfects: number; dailyCleared: boolean; earns: boolean }) {
+  const play = r.earns ? Math.floor(r.score / COIN_RULES.floorsPerCoin) + r.perfects * COIN_RULES.perPerfect : 0;
+  return play + (r.dailyCleared ? COIN_RULES.dailyBonus : 0);
 }

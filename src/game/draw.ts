@@ -237,7 +237,11 @@ export function drawPea(
 
   ctx.beginPath();
   ctx.arc(x, cy, R, 0, TAU);
-  ctx.fillStyle = st.body;
+  if (st.grad) {
+    const g = ctx.createLinearGradient(x - R, cy - R, x + R, cy + R);
+    st.grad.forEach((c, i) => g.addColorStop(i / (st.grad!.length - 1), c));
+    ctx.fillStyle = g;
+  } else ctx.fillStyle = st.body;
   ctx.fill();
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = st.outline;
@@ -257,7 +261,7 @@ export function drawPea(
   ctx.beginPath();
   ctx.ellipse(x - 7, cy - 9, 4.6, 2.5, -0.6, 0, TAU);
   ctx.fill();
-  if (look.bean === 'gold') {
+  if (st.sparkle) {
     ctx.fillStyle = 'rgba(255,255,255,.9)';
     ctx.beginPath();
     ctx.arc(x + 9, cy - 8, 1.6, 0, TAU);
@@ -305,7 +309,7 @@ export function drawPea(
   drawAccFront(ctx, look.acc, x, cy, R);
 
   if (helmet) {
-    const hr = accStyle(look.acc).tall ? 31 : 25;
+    const hr = 25 + accStyle(look.acc).helmet;
     const hc = cy - (hr - 25);
     ctx.beginPath();
     ctx.arc(x, hc, hr, 0, TAU);

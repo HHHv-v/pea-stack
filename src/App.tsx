@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Shop, { Coin } from './Shop';
-import { type AccId, type BeanId, itemKey } from './game/cosmetics';
+import { ACCS, type AccId, BEANS, type BeanId, isOwned, itemKey } from './game/cosmetics';
 import { PeaStackGame, STAGE_FLOORS } from './game/engine';
-import { type Progress, coinsForRun, dayKey, loadProgress, refreshDaily, saveProgress, touchStreak } from './game/progress';
+import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, refreshDaily, saveProgress, spendCoinRun, touchStreak } from './game/progress';
 import { Sound } from './game/sound';
 import {
   canOpenLeaderboard,
@@ -28,6 +28,8 @@ interface OverInfo {
   newBest: boolean;
   earned: number; // 이번에 받은 코인
   runCoins: number; // 이번 판(이어하기 포함) 전체 코인, 2배 광고 보상 기준
+  earns: boolean; // 이번 판이 층·딱 코인을 받는 판이었는지
+  runsLeft: number; // 이 판이 끝난 뒤 오늘 남은 코인 판
 }
 
 /** 개발 서버에서만: ?demo=30 이면 시작하자마자 30층까지 쌓아요(스크린샷용). */
@@ -45,7 +47,7 @@ export default function App() {
   const soundRef = useRef(new Sound());
   const progressRef = useRef<Progress | null>(null);
   const screenRef = useRef<Screen>('home');
-  const runRef = useRef({ awarded: 0, doubled: false });
+  const runRef = useRef({ awarded: 0, doubled: false, earns: true, counted: false });
 
   const [progress, setProgress] = useState<Progress | null>(null);
   const [screen, setScreenState] = useState<Screen>('home');
@@ -60,6 +62,12 @@ export default function App() {
   const [shared, setShared] = useState(false);
 
   const dailyDone = progress?.dailyDoneOn === dayKey();
+  const runsLeft = progress ? coinRunsLeft(progress) : COIN_RULES.runsPerDay;
+  // 지금 코인으로 살 수 있는 새 꾸미기가 있으면 버튼에 점을 찍어요
+  const canBuySomething =
+    !!progress &&
+    (BEANS.some((b) => !isOwned(progress.owned, 'bean', b.id, b.price) && b.price <= progress.coins) ||
+      ACCS.some((a) => !isOwned(progress.owned, 'acc', a.id, a.price) && a.price <= progress.coins));
   const target = progress?.dailyTarget ?? 10;
 
   const setScreen = useCallback((s: Screen) => {
@@ -113,14 +121,22 @@ export default function App() {
         const prevBest = progressRef.current?.best ?? 0;
         const newBest = r.score > prevBest;
         // 이어하기로 같은 판이 다시 끝나도 코인이 두 번 들어오지 않게, 이번 판 누적에서 이미 준 만큼 빼요
-        const runCoins = coinsForRun(r);
-        const earned = Math.max(0, runCoins - runRef.current.awarded);
-        runRef.current.awarded = runCoins;
-        updateProgress((p) => ({ ...p, best: Math.max(p.best, r.score), coins: p.coins + earned }));
+        const run = runRef.current;
+        const runCoins = coinsForRun({ ...r, earns: run.earns });
+        const earned = Math.max(0, runCoins - run.awarded);
+        run.awarded = runCoins;
+        // 코인 받는 판은 처음 끝날 때 한 번만 세요(이어하기로 다시 끝나도 그대로)
+        const spend = run.earns && !run.counted;
+        run.counted = true;
+        updateProgress((p) => {
+          const q = { ...p, best: Math.max(p.best, r.score), coins: p.coins + earned };
+          return spend ? spendCoinRun(q) : q;
+        });
+        const runsLeft = progressRef.current ? coinRunsLeft(progressRef.current) : 0;
         submitScore(r.score);
         setAdReady(isRewardedAdReady());
         setShared(false);
-        setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins });
+        setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins, earns: run.earns, runsLeft });
         setScreen('over');
       },
     });
@@ -138,6 +154,7 @@ export default function App() {
   /* 손을 떼는 건 화면 어디서든 잡아요. 키보드(스페이스·엔터)도 돼요. */
   useEffect(() => {
     const release = () => gameRef.current?.release();
+    const cancel = () => gameRef.current?.cancelHold();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' && e.code !== 'Enter') return;
       if (document.activeElement instanceof HTMLButtonElement) return;
@@ -148,14 +165,14 @@ export default function App() {
       if (e.code === 'Space' || e.code === 'Enter') release();
     };
     window.addEventListener('pointerup', release);
-    window.addEventListener('pointercancel', release);
-    window.addEventListener('blur', release);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('blur', cancel);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     return () => {
       window.removeEventListener('pointerup', release);
-      window.removeEventListener('pointercancel', release);
-      window.removeEventListener('blur', release);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('blur', cancel);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
@@ -165,7 +182,7 @@ export default function App() {
   useEffect(() => {
     const onVisibility = () => {
       if (document.hidden) {
-        gameRef.current?.release();
+        gameRef.current?.cancelHold();
         soundRef.current.suspend();
         keepAwake(false);
       } else {
@@ -196,7 +213,7 @@ export default function App() {
     soundRef.current.ui();
     updateProgress((p) => touchStreak(refreshDaily(p)));
     const p = progressRef.current;
-    runRef.current = { awarded: 0, doubled: false };
+    runRef.current = { awarded: 0, doubled: false, earns: p ? coinRunsLeft(p) > 0 : true, counted: false };
     setDoubled(false);
     game.start({ dailyTarget: p?.dailyTarget ?? 10, dailyDone: p?.dailyDoneOn === dayKey() });
     if (DEMO_FLOORS > 0) game.debugBuild(DEMO_FLOORS);
@@ -351,11 +368,13 @@ export default function App() {
                 <span>연속 출석</span>
               </div>
             </div>
+            <CoinNote runsLeft={runsLeft} dailyDone={dailyDone} />
             <button className="btn" type="button" onClick={start} disabled={!progress}>
               쌓기 시작
             </button>
             <button className="btn ghost" type="button" onClick={() => setShopOpen(true)} disabled={!progress}>
               완두콩 꾸미기
+              {canBuySomething && <span className="new-dot" aria-label="살 수 있는 꾸미기가 있어요" />}
             </button>
           </div>
         </div>
@@ -372,10 +391,23 @@ export default function App() {
             <p className="lead">
               최고 {progress?.best ?? 0}층 · {dailyDone ? '오늘의 도전 달성' : `오늘의 도전까지 ${Math.max(0, target - over.score)}층`}
             </p>
-            <div className="earned">
-              <Coin size={18} /> +{over.earned + (doubled ? over.runCoins : 0)} 코인
-              {doubled && <span className="tag">2배!</span>}
-            </div>
+            {over.earns || over.earned + (doubled ? over.runCoins : 0) > 0 ? (
+              <div className="earned">
+                <Coin size={18} /> +{over.earned + (doubled ? over.runCoins : 0)} 코인
+                {doubled && <span className="tag">2배!</span>}
+              </div>
+            ) : (
+              !over.earns && <div className="earned muted">오늘 코인은 다 받았어요</div>
+            )}
+            <p className="coin-sub">
+              {over.earns
+                ? over.runsLeft > 0
+                  ? `오늘 코인 받는 판 ${over.runsLeft}번 남았어요`
+                  : '오늘 코인 받는 판을 다 썼어요. 내일 다시 2판!'
+                : dailyDone
+                  ? '내일 다시 2판 동안 코인을 받아요'
+                  : `오늘의 도전을 달성하면 ${COIN_RULES.dailyBonus}코인은 받을 수 있어요`}
+            </p>
             {canRevive && (
               <button className="btn ghost" type="button" onClick={revive} disabled={!!adBusy}>
                 {adBusy === 'revive' ? '광고 불러오는 중' : '광고 보고 이어하기 (1회)'}
@@ -392,6 +424,7 @@ export default function App() {
             <div className="links">
               <button className="link" type="button" onClick={() => setShopOpen(true)}>
                 꾸미기
+                {canBuySomething && <span className="new-dot" aria-label="살 수 있는 꾸미기가 있어요" />}
               </button>
               {over.score > 0 && (
                 <button className="link" type="button" onClick={share}>
@@ -436,6 +469,27 @@ export default function App() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 시작 화면: 오늘 코인을 몇 판 더 받을 수 있는지 */
+function CoinNote({ runsLeft, dailyDone }: { runsLeft: number; dailyDone: boolean }) {
+  const total = COIN_RULES.runsPerDay;
+  return (
+    <div className="coin-note">
+      <div className="dots" aria-hidden="true">
+        {Array.from({ length: total }, (_, i) => (
+          <span key={i} className={i < total - runsLeft ? 'dot used' : 'dot'}>
+            <Coin size={16} />
+          </span>
+        ))}
+      </div>
+      <span>
+        {runsLeft > 0 ? `오늘 코인 받는 판 ${runsLeft}/${total}` : '오늘 코인 판은 다 썼어요'}
+        <br />
+        <small>{dailyDone ? '오늘의 도전 보상도 받았어요' : `오늘의 도전 달성 +${COIN_RULES.dailyBonus}`}</small>
+      </span>
     </div>
   );
 }

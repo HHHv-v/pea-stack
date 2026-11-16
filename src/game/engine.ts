@@ -223,6 +223,15 @@ export class PeaStackGame {
     this.haptic('tickWeak');
   }
 
+  /** 누르던 중에 앱이 가려지거나 손가락 입력이 취소되면 놓지 않고 처음부터 다시 누르게 해요. */
+  cancelHold() {
+    const cur = this.cur;
+    if (this.phase !== 'play' || !cur || !cur.hold) return;
+    this.sound.holdStop();
+    cur.hold = false;
+    cur.w = 12;
+  }
+
   release() {
     const cur = this.cur;
     if (this.phase !== 'play' || !cur || !cur.hold) return;
