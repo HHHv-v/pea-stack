@@ -1,0 +1,435 @@
+/**
+ * 완두콩의 높이 쌓기 게임 엔진.
+ *
+ * 규칙
+ * - 누르는 동안 막대가 양옆으로 자라고, 손을 떼면 내려앉아요.
+ * - 아래층과 폭이 같으면(오차 4.5% 이내) "딱!". 2번 연속부터는 폭이 조금씩 회복돼요.
+ * - 틀린 만큼 탑이 좁아져요. 모자라면 그 폭 그대로, 넘치면 넘친 만큼 안쪽까지 부서져요.
+ * - 폭이 16px보다 좁아지거나, 아래층의 1.9배까지 누르고 있으면 끝나요.
+ * - 블록마다 자라는 속도가 달라서 박자로 외울 수 없어요.
+ */
+import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
+import { BH, FONT, type Mood, clamp01, drawPea, drawPot, drawSky, drawSlab, isNightSky, roundRect, skyColors } from './draw';
+import type { Sound } from './sound';
+
+export type Phase = 'ready' | 'play' | 'over';
+export type Stage = 0 | 1 | 2; // 파란 하늘, 노을, 우주
+
+/** 단계가 바뀌는 층수 */
+export const STAGE_FLOORS = { sunset: 12, space: 26 } as const;
+
+export interface GameCallbacks {
+  onScore?: (score: number) => void;
+  onStage?: (stage: Stage) => void;
+  onNight?: (night: boolean) => void;
+  onDailyCleared?: () => void;
+  onOver?: (score: number) => void;
+}
+
+interface Block { x: number; w: number; hue: number; t: number; flash: number }
+interface Current { w: number; hold: boolean; speed: number; hue: number }
+interface Debris { x: number; y: number; w: number; vx: number; vy: number; r: number; vr: number; hue: number }
+interface Particle { x: number; y: number; vx: number; vy: number; t: number; hue: number }
+interface Ring { x: number; y: number; w: number; t: number }
+interface Float { x: number; y: number; t: number; s: string; big?: boolean }
+
+const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function nextHue(prev: number) {
+  let h: number;
+  let d: number;
+  do {
+    h = Math.floor(Math.random() * 360);
+    d = Math.abs(((h - prev + 540) % 360) - 180);
+  } while (d < 45); // 바로 아래층과 비슷한 색은 피해요
+  return h;
+}
+
+export class PeaStackGame {
+  phase: Phase = 'ready';
+
+  private ctx: CanvasRenderingContext2D;
+  private W = 0;
+  private H = 0;
+  private dpr = 1;
+  private raf = 0;
+  private lastT = 0;
+  private now = 0;
+
+  private blocks: Block[] = [];
+  private cur: Current | null = null;
+  private debris: Debris[] = [];
+  private parts: Particle[] = [];
+  private rings: Ring[] = [];
+  private floats: Float[] = [];
+
+  private baseW = 240;
+  private combo = 0;
+  private cam = 0;
+  private shake = 0;
+  private bgF = 0;
+  private stage: Stage = 0;
+  private mood: Mood = 'calm';
+  private moodUntil = 0;
+  private night = false;
+  private revived = false;
+  private dailyTarget = Infinity;
+  private dailyDone = true;
+
+  private canvas: HTMLCanvasElement;
+  private sound: Sound;
+  private haptic: (type: HapticFeedbackType) => void;
+  private cb: GameCallbacks;
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    sound: Sound,
+    haptic: (type: HapticFeedbackType) => void,
+    cb: GameCallbacks = {},
+  ) {
+    this.canvas = canvas;
+    this.sound = sound;
+    this.haptic = haptic;
+    this.cb = cb;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('캔버스를 만들 수 없어요.');
+    this.ctx = ctx;
+    this.resize();
+    this.reset();
+    this.raf = requestAnimationFrame(this.frame);
+  }
+
+  get score() {
+    return Math.max(0, this.blocks.length - 1);
+  }
+
+  get canRevive() {
+    return !this.revived && this.score > 0;
+  }
+
+  resize() {
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const r = this.canvas.getBoundingClientRect();
+    this.W = r.width;
+    this.H = r.height;
+    this.canvas.width = Math.round(this.W * this.dpr);
+    this.canvas.height = Math.round(this.H * this.dpr);
+  }
+
+  destroy() {
+    cancelAnimationFrame(this.raf);
+    this.sound.holdStop();
+  }
+
+  private reset() {
+    this.baseW = Math.min(this.W * 0.58, 250);
+    this.blocks = [{ x: -this.baseW / 2, w: this.baseW, hue: Math.floor(Math.random() * 360), t: -1e4, flash: -1e4 }];
+    this.debris = [];
+    this.parts = [];
+    this.rings = [];
+    this.floats = [];
+    this.combo = 0;
+    this.cam = 0;
+    this.shake = 0;
+    this.bgF = 0;
+    this.stage = 0;
+    this.moodUntil = 0;
+    this.revived = false;
+    this.cur = null;
+  }
+
+  start(opts: { dailyTarget: number; dailyDone: boolean }) {
+    this.reset();
+    this.dailyTarget = opts.dailyTarget;
+    this.dailyDone = opts.dailyDone;
+    this.phase = 'play';
+    this.spawn();
+    this.cb.onScore?.(0);
+    this.cb.onStage?.(0);
+  }
+
+  /** 광고를 본 뒤 한 번 이어해요. 맨 위층 폭을 처음 폭의 60%까지 넓혀 줘요. */
+  revive() {
+    if (!this.canRevive || this.phase !== 'over') return;
+    this.revived = true;
+    const top = this.blocks[this.blocks.length - 1];
+    const w = Math.max(top.w, this.baseW * 0.6);
+    const c = top.x + top.w / 2;
+    top.w = w;
+    top.x = c - w / 2;
+    top.flash = this.now;
+    this.phase = 'play';
+    this.combo = 0;
+    this.spawn();
+  }
+
+  private spawn() {
+    const n = this.blocks.length;
+    this.cur = {
+      w: 12,
+      hold: false,
+      speed: Math.min(120 + n * 4, 360) * (0.75 + Math.random() * 0.6),
+      hue: nextHue(this.blocks[n - 1].hue),
+    };
+  }
+
+  private blockY(i: number) {
+    return this.H * 0.8 - (i + 1) * BH + this.cam;
+  }
+
+  press() {
+    if (this.phase !== 'play' || !this.cur || this.cur.hold) return;
+    this.cur.hold = true;
+    this.sound.holdStart();
+    this.haptic('tickWeak');
+  }
+
+  release() {
+    const cur = this.cur;
+    if (this.phase !== 'play' || !cur || !cur.hold) return;
+    this.sound.holdStop();
+    const now = this.now;
+    const top = this.blocks[this.blocks.length - 1];
+    const n = this.blocks.length;
+    const c = top.x + top.w / 2;
+    const w = cur.w;
+    const diff = w - top.w;
+    const tol = Math.max(3, top.w * 0.045);
+    const y = this.blockY(n);
+
+    if (Math.abs(diff) <= tol) {
+      this.combo++;
+      let nw = top.w;
+      if (this.combo >= 2 && nw < this.baseW) nw = Math.min(this.baseW, nw + 12);
+      const nx = c - nw / 2;
+      this.blocks.push({ x: nx, w: nw, hue: cur.hue, t: now, flash: now });
+      this.rings.push({ x: nx, y, w: nw, t: now });
+      for (let i = 0; i < 14; i++) {
+        const side = i % 2 ? 1 : -1;
+        this.parts.push({
+          x: nx + (side > 0 ? nw : 0), y: y + BH / 2,
+          vx: side * (60 + Math.random() * 160), vy: -80 - Math.random() * 200,
+          t: now, hue: cur.hue,
+        });
+      }
+      this.floats.push({ x: c, y: y - 8, t: now, s: this.combo > 1 ? `딱! ×${this.combo}` : '딱!' });
+      this.sound.perfect(this.combo);
+      this.haptic('success');
+      this.shake = 2.5;
+      this.setMood('happy', 700);
+    } else {
+      const err = Math.abs(diff);
+      const nw = top.w - err;
+      this.combo = 0;
+      if (diff > 0) {
+        this.debris.push({ x: c - w / 2, y, w: err, vx: -90, vy: -40, r: 0, vr: -2.4, hue: cur.hue });
+        this.debris.push({ x: c + w / 2 - err, y, w: err, vx: 90, vy: -40, r: 0, vr: 2.4, hue: cur.hue });
+      }
+      if (nw < 16) {
+        if (diff <= 0) this.debris.push({ x: c - w / 2, y, w, vx: 0, vy: 0, r: 0, vr: 1.2, hue: cur.hue });
+        this.cur = null;
+        this.gameOver();
+        return;
+      }
+      this.blocks.push({ x: c - nw / 2, w: nw, hue: cur.hue, t: now, flash: -1e4 });
+      this.floats.push({ x: c, y: y - 8, t: now, s: diff > 0 ? '넘쳤다!' : '모자라!' });
+      this.sound.place(nw / top.w);
+      if (diff > 0) this.sound.cut();
+      this.haptic(diff > 0 ? 'basicMedium' : 'basicWeak');
+      this.shake = diff > 0 ? 5 : 3;
+      this.setMood('shock', 500);
+    }
+
+    const s = this.score;
+    if (!this.dailyDone && s >= this.dailyTarget) {
+      this.dailyDone = true;
+      this.floats.push({ x: 0, y: this.H * 0.3, t: now, s: '오늘의 도전 달성!', big: true });
+      this.sound.win();
+      this.haptic('confetti');
+      this.cb.onDailyCleared?.();
+    }
+    const ns: Stage = s >= STAGE_FLOORS.space ? 2 : s >= STAGE_FLOORS.sunset ? 1 : 0;
+    if (ns > this.stage) {
+      this.stage = ns;
+      this.floats.push({ x: 0, y: this.H * 0.38, t: now, s: ns === 2 ? '우주 도착!' : '노을이 져요', big: true });
+      if (ns === 2) this.sound.win();
+      this.haptic('wiggle');
+      this.cb.onStage?.(ns);
+    }
+    this.cb.onScore?.(s);
+    this.spawn();
+  }
+
+  private gameOver() {
+    this.phase = 'over';
+    this.sound.holdStop();
+    this.sound.over();
+    this.haptic('error');
+    this.shake = 9;
+    const s = this.score;
+    window.setTimeout(() => {
+      if (this.phase === 'over') this.cb.onOver?.(s);
+    }, 650);
+  }
+
+  private setMood(m: Mood, ms: number) {
+    this.mood = m;
+    this.moodUntil = this.now + ms;
+  }
+
+  private frame = (t: number) => {
+    this.now = t;
+    const dt = Math.min(0.033, (t - this.lastT) / 1000 || 0);
+    this.lastT = t;
+    this.update(dt);
+    this.render(t, dt);
+    this.raf = requestAnimationFrame(this.frame);
+  };
+
+  private update(dt: number) {
+    const cur = this.cur;
+    if (this.phase === 'play' && cur?.hold) {
+      const tw = this.blocks[this.blocks.length - 1].w;
+      cur.w += cur.speed * dt;
+      this.sound.holdPitch(cur.w / tw);
+      if (cur.w >= tw * 1.9) this.release();
+    }
+    const camT = Math.max(0, this.blocks.length - 5) * BH;
+    this.cam += (camT - this.cam) * Math.min(1, dt * 7);
+    this.bgF += (this.score - this.bgF) * Math.min(1, dt * 2.5);
+    this.shake *= Math.exp(-dt * 13);
+
+    const night = isNightSky(skyColors(this.bgF)[0]);
+    if (night !== this.night) {
+      this.night = night;
+      this.cb.onNight?.(night);
+    }
+  }
+
+  private render(t: number, dt: number) {
+    const { ctx, W, H } = this;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    drawSky(ctx, W, H, this.bgF, t, this.cam);
+
+    ctx.save();
+    if (!reduceMotion() && this.shake > 0.1) ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
+    const cx = W / 2;
+    const gy = H * 0.8 + this.cam;
+    if (gy < H + 20) drawPot(ctx, cx, gy, this.baseW);
+
+    for (let i = 0; i < this.blocks.length; i++) {
+      const b = this.blocks[i];
+      const y = this.blockY(i);
+      if (y > H + BH) continue;
+      drawSlab(ctx, cx + b.x, y, b.w, b.hue, Math.max(0, 1 - (t - b.t) / 170), Math.max(0, 1 - (t - b.flash) / 260));
+    }
+
+    { // 새 층이 쌓이면 완두콩이 폴짝 올라타요
+      const i = this.blocks.length - 1;
+      const tb = this.blocks[i];
+      const k = clamp01((t - tb.t) / 260);
+      const py = this.blockY(i) + (1 - k) * BH - Math.sin(Math.PI * k) * 16;
+      const mood: Mood = t < this.moodUntil ? this.mood : this.phase === 'over' ? 'shock' : 'calm';
+      drawPea(ctx, cx + tb.x + tb.w / 2, py, mood, this.bgF > 24);
+    }
+
+    const cur = this.cur;
+    if (cur && this.phase === 'play') {
+      const top = this.blocks[this.blocks.length - 1];
+      const c = cx + top.x + top.w / 2;
+      const ty = this.blockY(this.blocks.length - 1);
+      const hy = this.blockY(this.blocks.length) - 54;
+      if (this.score < 3) { // 처음 세 층만 맞출 폭을 점선으로 알려줘요
+        ctx.setLineDash([5, 6]);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(43,37,64,.35)';
+        ctx.beginPath();
+        ctx.moveTo(c - top.w / 2, ty);
+        ctx.lineTo(c - top.w / 2, hy - 8);
+        ctx.moveTo(c + top.w / 2, ty);
+        ctx.lineTo(c + top.w / 2, hy - 8);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      const pw = cur.hold ? cur.w : 12 + 3 * Math.sin(t / 180);
+      drawSlab(ctx, c - pw / 2, hy, pw, cur.hue);
+      if (this.score === 0 && !cur.hold) {
+        ctx.textAlign = 'center';
+        ctx.font = `600 16px ${FONT}`;
+        ctx.fillStyle = 'rgba(43,37,64,.8)';
+        ctx.fillText('화면을 꾹 누르고 있다가 떼세요', cx, hy - 22);
+      }
+    }
+
+    for (let i = this.debris.length - 1; i >= 0; i--) {
+      const d = this.debris[i];
+      d.vy += 1500 * dt;
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.r += d.vr * dt;
+      if (d.y > H + 80) {
+        this.debris.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.translate(cx + d.x + d.w / 2, d.y + BH / 2);
+      ctx.rotate(d.r);
+      drawSlab(ctx, -d.w / 2, -BH / 2, d.w, d.hue);
+      ctx.restore();
+    }
+
+    for (let i = this.rings.length - 1; i >= 0; i--) {
+      const r = this.rings[i];
+      const k = (t - r.t) / 380;
+      if (k >= 1) {
+        this.rings.splice(i, 1);
+        continue;
+      }
+      const e = 18 * k;
+      roundRect(ctx, cx + r.x - e, r.y - e, r.w + e * 2, BH + e * 2, 12 + e);
+      ctx.strokeStyle = `rgba(255,255,255,${1 - k})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const p = this.parts[i];
+      const k = (t - p.t) / 520;
+      if (k >= 1) {
+        this.parts.splice(i, 1);
+        continue;
+      }
+      p.vy += 900 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      ctx.globalAlpha = 1 - k;
+      ctx.fillStyle = `hsl(${p.hue} 95% 85%)`;
+      ctx.beginPath();
+      ctx.arc(cx + p.x, p.y, 4 * (1 - k) + 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.textAlign = 'center';
+    for (let i = this.floats.length - 1; i >= 0; i--) {
+      const f = this.floats[i];
+      const k = (t - f.t) / (f.big ? 1500 : 700);
+      if (k >= 1) {
+        this.floats.splice(i, 1);
+        continue;
+      }
+      ctx.globalAlpha = k < 0.8 ? 1 : (1 - k) * 5;
+      ctx.font = `800 ${f.big ? 28 : 22}px ${FONT}`;
+      ctx.lineWidth = 5;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(43,37,64,.85)';
+      ctx.fillStyle = '#fff';
+      const yy = f.y - 34 * k;
+      ctx.strokeText(f.s, cx + f.x, yy);
+      ctx.fillText(f.s, cx + f.x, yy);
+      ctx.globalAlpha = 1;
+      ctx.lineJoin = 'miter';
+    }
+    ctx.restore();
+  }
+}
