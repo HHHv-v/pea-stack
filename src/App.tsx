@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Shop, { Coin } from './Shop';
+import { type AccId, type BeanId, itemKey } from './game/cosmetics';
 import { PeaStackGame, STAGE_FLOORS } from './game/engine';
-import { type Progress, dailyTarget, dayKey, loadProgress, saveProgress, touchStreak } from './game/progress';
+import { type Progress, coinsForRun, dayKey, loadProgress, refreshDaily, saveProgress, touchStreak } from './game/progress';
 import { Sound } from './game/sound';
 import {
   canOpenLeaderboard,
@@ -24,9 +26,9 @@ type Screen = 'home' | 'play' | 'over';
 interface OverInfo {
   score: number;
   newBest: boolean;
+  earned: number; // 이번에 받은 코인
+  runCoins: number; // 이번 판(이어하기 포함) 전체 코인, 2배 광고 보상 기준
 }
-
-const TARGET = dailyTarget();
 
 /** 개발 서버에서만: ?demo=30 이면 시작하자마자 30층까지 쌓아요(스크린샷용). */
 const DEMO_FLOORS = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('demo') ?? 0) : 0;
@@ -43,18 +45,22 @@ export default function App() {
   const soundRef = useRef(new Sound());
   const progressRef = useRef<Progress | null>(null);
   const screenRef = useRef<Screen>('home');
+  const runRef = useRef({ awarded: 0, doubled: false });
 
   const [progress, setProgress] = useState<Progress | null>(null);
   const [screen, setScreenState] = useState<Screen>('home');
   const [score, setScore] = useState(0);
   const [night, setNight] = useState(false);
   const [over, setOver] = useState<OverInfo | null>(null);
-  const [adBusy, setAdBusy] = useState(false);
+  const [adBusy, setAdBusy] = useState<'revive' | 'double' | null>(null);
   const [adReady, setAdReady] = useState(false);
+  const [doubled, setDoubled] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
   const [shared, setShared] = useState(false);
 
   const dailyDone = progress?.dailyDoneOn === dayKey();
+  const target = progress?.dailyTarget ?? 10;
 
   const setScreen = useCallback((s: Screen) => {
     screenRef.current = s;
@@ -69,6 +75,7 @@ export default function App() {
     progressRef.current = next;
     setProgress(next);
     saveProgress(next);
+    if (gameRef.current) gameRef.current.look = { bean: next.bean, acc: next.acc };
   }, []);
 
   /* 사용자 식별 → 그 사용자의 기록 불러오기 */
@@ -83,7 +90,9 @@ export default function App() {
         if (!alive) return;
         progressRef.current = p;
         soundRef.current.muted = p.muted;
+        if (gameRef.current) gameRef.current.look = { bean: p.bean, acc: p.acc };
         setProgress(p);
+        saveProgress(p);
       });
     preloadRewardedAd();
     return () => {
@@ -100,17 +109,22 @@ export default function App() {
       onScore: setScore,
       onNight: setNight,
       onDailyCleared: () => updateProgress((p) => ({ ...p, dailyDoneOn: dayKey() })),
-      onOver: (s) => {
+      onOver: (r) => {
         const prevBest = progressRef.current?.best ?? 0;
-        const newBest = s > prevBest;
-        if (newBest) updateProgress((p) => ({ ...p, best: s }));
-        submitScore(s);
+        const newBest = r.score > prevBest;
+        // 이어하기로 같은 판이 다시 끝나도 코인이 두 번 들어오지 않게, 이번 판 누적에서 이미 준 만큼 빼요
+        const runCoins = coinsForRun(r);
+        const earned = Math.max(0, runCoins - runRef.current.awarded);
+        runRef.current.awarded = runCoins;
+        updateProgress((p) => ({ ...p, best: Math.max(p.best, r.score), coins: p.coins + earned }));
+        submitScore(r.score);
         setAdReady(isRewardedAdReady());
         setShared(false);
-        setOver({ score: s, newBest: newBest && s > 0 });
+        setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins });
         setScreen('over');
       },
     });
+    if (progressRef.current) game.look = { bean: progressRef.current.bean, acc: progressRef.current.acc };
     gameRef.current = game;
     const onResize = () => game.resize();
     window.addEventListener('resize', onResize);
@@ -163,37 +177,66 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  /* 뒤로가기를 누르면 종료 확인 모달을 띄워요(검수 기준). */
-  useEffect(() => onBack(() => setConfirmExit((open) => !open)), []);
+  /* 뒤로가기: 꾸미기가 열려 있으면 닫고, 아니면 종료 확인 모달(검수 기준). */
+  const shopOpenRef = useRef(false);
+  shopOpenRef.current = shopOpen;
+  useEffect(
+    () =>
+      onBack(() => {
+        if (shopOpenRef.current) setShopOpen(false);
+        else setConfirmExit((c) => !c);
+      }),
+    [],
+  );
 
   const start = () => {
     const game = gameRef.current;
     if (!game) return;
     soundRef.current.unlock();
     soundRef.current.ui();
-    updateProgress(touchStreak);
-    game.start({ dailyTarget: TARGET, dailyDone: progressRef.current?.dailyDoneOn === dayKey() });
+    updateProgress((p) => touchStreak(refreshDaily(p)));
+    const p = progressRef.current;
+    runRef.current = { awarded: 0, doubled: false };
+    setDoubled(false);
+    game.start({ dailyTarget: p?.dailyTarget ?? 10, dailyDone: p?.dailyDoneOn === dayKey() });
     if (DEMO_FLOORS > 0) game.debugBuild(DEMO_FLOORS);
     setOver(null);
     setScreen('play');
     preloadRewardedAd();
   };
 
-  const revive = async () => {
-    if (adBusy) return;
+  const watchAd = async (): Promise<boolean> => {
     soundRef.current.ui();
-    setAdBusy(true);
     soundRef.current.suspend(); // 광고가 나오는 동안 소리를 멈춰요
     const ok = await showRewardedAd();
     soundRef.current.resume();
-    setAdBusy(false);
-    if (!ok) {
-      setAdReady(isRewardedAdReady());
-      return;
-    }
+    setAdReady(isRewardedAdReady());
+    return ok;
+  };
+
+  const revive = async () => {
+    if (adBusy) return;
+    setAdBusy('revive');
+    const ok = await watchAd();
+    setAdBusy(null);
+    if (!ok) return;
     gameRef.current?.revive();
     setOver(null);
     setScreen('play');
+  };
+
+  const doubleCoins = async () => {
+    if (adBusy || !over || runRef.current.doubled) return;
+    setAdBusy('double');
+    const ok = await watchAd();
+    setAdBusy(null);
+    if (!ok) return;
+    runRef.current.doubled = true;
+    setDoubled(true);
+    const bonus = over.runCoins;
+    updateProgress((p) => ({ ...p, coins: p.coins + bonus }));
+    haptic('confetti');
+    soundRef.current.win();
   };
 
   const share = async () => {
@@ -213,15 +256,35 @@ export default function App() {
     updateProgress((p) => ({ ...p, muted }));
   };
 
+  const buy = (kind: 'bean' | 'acc', id: string, price: number) => {
+    const p = progressRef.current;
+    if (!p || p.coins < price) return;
+    soundRef.current.win();
+    haptic('success');
+    updateProgress((q) => ({
+      ...q,
+      coins: q.coins - price,
+      owned: [...q.owned, itemKey(kind, id)],
+      ...(kind === 'bean' ? { bean: id as BeanId } : { acc: id as AccId }),
+    }));
+  };
+
+  const equip = (kind: 'bean' | 'acc', id: string) => {
+    soundRef.current.ui();
+    haptic('tap');
+    updateProgress((q) => ({ ...q, ...(kind === 'bean' ? { bean: id as BeanId } : { acc: id as AccId }) }));
+  };
+
   const best = Math.max(progress?.best ?? 0, screen === 'play' ? score : 0);
   const canRevive = !!over && !!gameRef.current?.canRevive && adReady;
+  const canDouble = !!over && over.runCoins > 0 && !doubled && adReady;
 
   return (
     <div className={night ? 'app night' : 'app'}>
       <div
         className="stage"
         onPointerDown={(e) => {
-          if (confirmExit) return;
+          if (confirmExit || shopOpen) return;
           e.preventDefault();
           gameRef.current?.press();
         }}
@@ -232,6 +295,9 @@ export default function App() {
       {/* 오른쪽 위는 토스의 ··· ✕ 버튼 자리라 비워 둬요 */}
       <div className="topbar">
         <span className="chip">최고 {best}층</span>
+        <span className="chip coin-chip" aria-label={`코인 ${progress?.coins ?? 0}개`}>
+          <Coin /> {progress?.coins ?? 0}
+        </span>
         <button
           className="chip icon"
           type="button"
@@ -250,13 +316,13 @@ export default function App() {
             <small>층</small>
           </div>
           <div className={dailyDone ? 'pill done' : 'pill'}>
-            {dailyDone ? '오늘의 도전 달성' : `오늘의 도전 ${Math.min(score, TARGET)}/${TARGET}층`}
+            {dailyDone ? '오늘의 도전 달성' : `오늘의 도전 ${Math.min(score, target)}/${target}층`}
           </div>
           <div className="hint">{stageHint(score)}</div>
         </div>
       )}
 
-      {screen === 'home' && (
+      {screen === 'home' && !shopOpen && (
         <div className="sheet">
           <div className="card">
             <h1>
@@ -277,7 +343,7 @@ export default function App() {
                 <span>최고 기록</span>
               </div>
               <div className="stat">
-                <b>{TARGET}층</b>
+                <b>{target}층</b>
                 <span>{dailyDone ? '오늘 달성!' : '오늘의 도전'}</span>
               </div>
               <div className="stat">
@@ -288,30 +354,45 @@ export default function App() {
             <button className="btn" type="button" onClick={start} disabled={!progress}>
               쌓기 시작
             </button>
+            <button className="btn ghost" type="button" onClick={() => setShopOpen(true)} disabled={!progress}>
+              완두콩 꾸미기
+            </button>
           </div>
         </div>
       )}
 
-      {screen === 'over' && over && (
+      {screen === 'over' && over && !shopOpen && (
         <div className="sheet">
           <div className="card">
-            <h2>{over.newBest ? '새 기록!' : over.score >= TARGET ? '잘 쌓았어요!' : '아쉽다!'}</h2>
+            <h2>{over.newBest ? '새 기록!' : over.score >= target ? '잘 쌓았어요!' : '아쉽다!'}</h2>
             <div className="big">
               {over.score}
               <small>층</small>
             </div>
             <p className="lead">
-              최고 {progress?.best ?? 0}층 · {dailyDone ? '오늘의 도전 달성' : `오늘의 도전까지 ${Math.max(0, TARGET - over.score)}층`}
+              최고 {progress?.best ?? 0}층 · {dailyDone ? '오늘의 도전 달성' : `오늘의 도전까지 ${Math.max(0, target - over.score)}층`}
             </p>
+            <div className="earned">
+              <Coin size={18} /> +{over.earned + (doubled ? over.runCoins : 0)} 코인
+              {doubled && <span className="tag">2배!</span>}
+            </div>
             {canRevive && (
-              <button className="btn ghost" type="button" onClick={revive} disabled={adBusy}>
-                {adBusy ? '광고 불러오는 중' : '광고 보고 이어하기 (1회)'}
+              <button className="btn ghost" type="button" onClick={revive} disabled={!!adBusy}>
+                {adBusy === 'revive' ? '광고 불러오는 중' : '광고 보고 이어하기 (1회)'}
+              </button>
+            )}
+            {canDouble && (
+              <button className="btn ghost" type="button" onClick={doubleCoins} disabled={!!adBusy}>
+                {adBusy === 'double' ? '광고 불러오는 중' : `광고 보고 코인 2배 (+${over.runCoins})`}
               </button>
             )}
             <button className="btn" type="button" onClick={start}>
               다시 쌓기
             </button>
             <div className="links">
+              <button className="link" type="button" onClick={() => setShopOpen(true)}>
+                꾸미기
+              </button>
               {over.score > 0 && (
                 <button className="link" type="button" onClick={share}>
                   {shared ? '공유했어요' : '기록 공유하기'}
@@ -327,11 +408,23 @@ export default function App() {
         </div>
       )}
 
+      {shopOpen && progress && (
+        <Shop
+          coins={progress.coins}
+          owned={progress.owned}
+          bean={progress.bean}
+          acc={progress.acc}
+          onBuy={buy}
+          onEquip={equip}
+          onClose={() => setShopOpen(false)}
+        />
+      )}
+
       {confirmExit && (
         <div className="sheet modal" role="dialog" aria-modal="true" aria-labelledby="exit-title">
           <div className="card small">
             <h3 id="exit-title">게임을 그만할까요?</h3>
-            <p className="lead">{screen === 'play' ? '지금 쌓던 탑은 저장되지 않아요.' : '최고 기록은 그대로 남아 있어요.'}</p>
+            <p className="lead">{screen === 'play' ? '지금 쌓던 탑은 저장되지 않아요.' : '최고 기록과 코인은 그대로 남아 있어요.'}</p>
             <div className="row">
               <button className="btn ghost" type="button" onClick={() => setConfirmExit(false)}>
                 계속하기

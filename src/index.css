@@ -324,3 +324,137 @@ button:focus-visible {
     transition: none;
   }
 }
+
+/* ---------- 코인 ---------- */
+.coin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.coin-icon {
+  flex: none;
+}
+
+.earned {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #fff3c4;
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.earned .tag {
+  font-size: 12px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+/* ---------- 꾸미기 ---------- */
+.card.shop {
+  max-width: 360px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  gap: 12px;
+  padding: 20px 16px 16px;
+}
+
+.shop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shop-head .chip {
+  background: #f3ebdd;
+}
+
+.shop-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 2px;
+  border-radius: 20px;
+  background: linear-gradient(#bfe3ff, #e6f6ff);
+}
+
+.shop-preview b {
+  font-size: 15px;
+  padding-bottom: 8px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #f3ebdd;
+}
+
+.tab {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px;
+  background: none;
+  font: 600 15px var(--font);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tab.on {
+  background: #fff;
+  color: var(--ink);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  background: #f7f1e6;
+  font-family: var(--font);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.item.sel {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.item-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.item-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.item.on .item-price {
+  color: var(--mint);
+  font-weight: 700;
+}

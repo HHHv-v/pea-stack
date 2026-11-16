@@ -1,4 +1,5 @@
 /** 화면에 그리는 함수들. 상태는 갖지 않고, 받은 값대로 그리기만 해요. */
+import { type AccId, type BeanId, accStyle, beanStyle, drawAccBack, drawAccFront } from './cosmetics';
 
 export const BH = 38; // 한 층의 높이(px)
 export const FONT = "'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif";
@@ -216,27 +217,37 @@ export function drawSlab(ctx: CanvasRenderingContext2D, x: number, y: number, w:
 }
 
 /** 완두콩: 탑 꼭대기에 앉는 동그란 캐릭터. 표정은 눈과 입만 바뀌어요. (x, y)는 발밑 가운데. */
-export function drawPea(ctx: CanvasRenderingContext2D, x: number, y: number, mood: Mood, helmet: boolean) {
+export function drawPea(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  mood: Mood,
+  helmet: boolean,
+  look: { bean: BeanId; acc: AccId } = { bean: 'pea', acc: 'none' },
+) {
   const R = 17;
   const cy = y - R;
-  const INK = '#3F4A3A';
+  const st = beanStyle(look.bean);
+  const INK = st.ink;
   const TAU = Math.PI * 2;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
 
+  drawAccBack(ctx, look.acc, x, cy, R);
+
   ctx.beginPath();
   ctx.arc(x, cy, R, 0, TAU);
-  ctx.fillStyle = '#A9E28B';
+  ctx.fillStyle = st.body;
   ctx.fill();
   ctx.lineWidth = 2.5;
-  ctx.strokeStyle = '#6DB658';
+  ctx.strokeStyle = st.outline;
   ctx.stroke();
 
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, cy, R - 1.2, 0, TAU);
   ctx.clip();
-  ctx.fillStyle = 'rgba(96,170,80,.22)';
+  ctx.fillStyle = st.shade;
   ctx.beginPath();
   ctx.arc(x + 3, cy + 13, R, 0, TAU);
   ctx.fill();
@@ -246,8 +257,15 @@ export function drawPea(ctx: CanvasRenderingContext2D, x: number, y: number, moo
   ctx.beginPath();
   ctx.ellipse(x - 7, cy - 9, 4.6, 2.5, -0.6, 0, TAU);
   ctx.fill();
+  if (look.bean === 'gold') {
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.beginPath();
+    ctx.arc(x + 9, cy - 8, 1.6, 0, TAU);
+    ctx.arc(x + 12, cy - 3, 1, 0, TAU);
+    ctx.fill();
+  }
 
-  ctx.fillStyle = 'rgba(255,150,160,.6)';
+  ctx.fillStyle = st.cheek;
   for (const s of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(x + s * 10, cy + 5, 3.6, 2.6, 0, 0, TAU);
@@ -284,16 +302,20 @@ export function drawPea(ctx: CanvasRenderingContext2D, x: number, y: number, moo
     ctx.stroke();
   }
 
+  drawAccFront(ctx, look.acc, x, cy, R);
+
   if (helmet) {
+    const hr = accStyle(look.acc).tall ? 31 : 25;
+    const hc = cy - (hr - 25);
     ctx.beginPath();
-    ctx.arc(x, cy, 25, 0, TAU);
+    ctx.arc(x, hc, hr, 0, TAU);
     ctx.fillStyle = 'rgba(190,225,255,.16)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.9)';
     ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(x, cy, 20, 1.15 * Math.PI, 1.45 * Math.PI);
+    ctx.arc(x, hc, hr - 5, 1.15 * Math.PI, 1.45 * Math.PI);
     ctx.strokeStyle = 'rgba(255,255,255,.7)';
     ctx.stroke();
   }

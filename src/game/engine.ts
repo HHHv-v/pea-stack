@@ -3,13 +3,14 @@
  *
  * 규칙
  * - 누르는 동안 막대가 양옆으로 자라고, 손을 떼면 내려앉아요.
- * - 아래층과 폭이 같으면(오차 4.5% 이내) "딱!". 2번 연속부터는 폭이 조금씩 회복돼요.
- * - 틀린 만큼 탑이 좁아져요. 모자라면 그 폭 그대로, 넘치면 넘친 만큼 안쪽까지 부서져요.
+ * - 아래층과 폭이 같으면(오차 2.5% 이내) "딱!". 3번 연속부터는 딱마다 폭이 6px씩 회복돼요.
+ * - 틀리면 틀린 폭의 1.4배만큼 탑이 좁아져요(넘친 부분과 가장자리가 함께 부서져요).
  * - 폭이 16px보다 좁아지거나, 아래층의 1.9배까지 누르고 있으면 끝나요.
  * - 블록마다 자라는 속도가 달라서 박자로 외울 수 없어요.
  */
 import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
 import { BH, FONT, type Mood, clamp01, drawPea, drawPot, drawSky, drawSlab, isNightSky, roundRect, skyColors } from './draw';
+import type { AccId, BeanId } from './cosmetics';
 import type { Sound } from './sound';
 
 export type Phase = 'ready' | 'play' | 'over';
@@ -18,12 +19,24 @@ export type Stage = 0 | 1 | 2; // 파란 하늘, 노을, 우주
 /** 단계가 바뀌는 층수 */
 export const STAGE_FLOORS = { sunset: 12, space: 26 } as const;
 
+/** 난이도. docs/LAUNCH.md 시뮬레이션 기준: 처음 하는 사람 ~13층, 보통 ~17층, 잘하는 사람 ~25층 */
+export const TUNING = {
+  perfectRatio: 0.025, // 딱 판정: 아래층 폭의 ±2.5%
+  perfectMinPx: 2.5,
+  recoverAfter: 3, // 몇 번 연속 딱부터 폭이 회복되는지
+  recoverPx: 6,
+  missPenalty: 1.4, // 틀린 폭의 몇 배만큼 좁아지는지
+  speedBase: 140, // 막대가 자라는 속도(px/s)
+  speedPerFloor: 5,
+  speedMax: 400,
+} as const;
+
 export interface GameCallbacks {
   onScore?: (score: number) => void;
   onStage?: (stage: Stage) => void;
   onNight?: (night: boolean) => void;
   onDailyCleared?: () => void;
-  onOver?: (score: number) => void;
+  onOver?: (result: { score: number; perfects: number; dailyCleared: boolean }) => void;
 }
 
 interface Block { x: number; w: number; hue: number; t: number; flash: number }
@@ -73,6 +86,10 @@ export class PeaStackGame {
   private moodUntil = 0;
   private night = false;
   private revived = false;
+  private perfects = 0;
+  private dailyClearedThisRun = false;
+  /** 꾸미기에서 고른 콩·소품 */
+  look: { bean: BeanId; acc: AccId } = { bean: 'pea', acc: 'none' };
   private dailyTarget = Infinity;
   private dailyDone = true;
 
@@ -135,6 +152,8 @@ export class PeaStackGame {
     this.stage = 0;
     this.moodUntil = 0;
     this.revived = false;
+    this.perfects = 0;
+    this.dailyClearedThisRun = false;
     this.cur = null;
   }
 
@@ -188,7 +207,7 @@ export class PeaStackGame {
     this.cur = {
       w: 12,
       hold: false,
-      speed: Math.min(120 + n * 4, 360) * (0.75 + Math.random() * 0.6),
+      speed: Math.min(TUNING.speedBase + n * TUNING.speedPerFloor, TUNING.speedMax) * (0.75 + Math.random() * 0.6),
       hue: nextHue(this.blocks[n - 1].hue),
     };
   }
@@ -214,13 +233,14 @@ export class PeaStackGame {
     const c = top.x + top.w / 2;
     const w = cur.w;
     const diff = w - top.w;
-    const tol = Math.max(3, top.w * 0.045);
+    const tol = Math.max(TUNING.perfectMinPx, top.w * TUNING.perfectRatio);
     const y = this.blockY(n);
 
     if (Math.abs(diff) <= tol) {
       this.combo++;
+      this.perfects++;
       let nw = top.w;
-      if (this.combo >= 2 && nw < this.baseW) nw = Math.min(this.baseW, nw + 12);
+      if (this.combo >= TUNING.recoverAfter && nw < this.baseW) nw = Math.min(this.baseW, nw + TUNING.recoverPx);
       const nx = c - nw / 2;
       this.blocks.push({ x: nx, w: nw, hue: cur.hue, t: now, flash: now });
       this.rings.push({ x: nx, y, w: nw, t: now });
@@ -239,14 +259,15 @@ export class PeaStackGame {
       this.setMood('happy', 700);
     } else {
       const err = Math.abs(diff);
-      const nw = top.w - err;
+      const nw = top.w - err * TUNING.missPenalty;
       this.combo = 0;
-      if (diff > 0) {
-        this.debris.push({ x: c - w / 2, y, w: err, vx: -90, vy: -40, r: 0, vr: -2.4, hue: cur.hue });
-        this.debris.push({ x: c + w / 2 - err, y, w: err, vx: 90, vy: -40, r: 0, vr: 2.4, hue: cur.hue });
+      const cut = (w - Math.max(0, nw)) / 2; // 양쪽 가장자리에서 부서지는 폭
+      if (cut > 1) {
+        this.debris.push({ x: c - w / 2, y, w: cut, vx: -90, vy: -40, r: 0, vr: -2.4, hue: cur.hue });
+        this.debris.push({ x: c + w / 2 - cut, y, w: cut, vx: 90, vy: -40, r: 0, vr: 2.4, hue: cur.hue });
       }
       if (nw < 16) {
-        if (diff <= 0) this.debris.push({ x: c - w / 2, y, w, vx: 0, vy: 0, r: 0, vr: 1.2, hue: cur.hue });
+        if (nw > 1) this.debris.push({ x: c - nw / 2, y, w: nw, vx: 0, vy: 0, r: 0, vr: 1.2, hue: cur.hue });
         this.cur = null;
         this.gameOver();
         return;
@@ -263,6 +284,7 @@ export class PeaStackGame {
     const s = this.score;
     if (!this.dailyDone && s >= this.dailyTarget) {
       this.dailyDone = true;
+      this.dailyClearedThisRun = true;
       this.floats.push({ x: 0, y: this.H * 0.3, t: now, s: '오늘의 도전 달성!', big: true });
       this.sound.win();
       this.haptic('confetti');
@@ -288,7 +310,7 @@ export class PeaStackGame {
     this.shake = 9;
     const s = this.score;
     window.setTimeout(() => {
-      if (this.phase === 'over') this.cb.onOver?.(s);
+      if (this.phase === 'over') this.cb.onOver?.({ score: s, perfects: this.perfects, dailyCleared: this.dailyClearedThisRun });
     }, 650);
   }
 
@@ -352,7 +374,7 @@ export class PeaStackGame {
       const k = clamp01((t - tb.t) / 260);
       const py = this.blockY(i) + (1 - k) * BH - Math.sin(Math.PI * k) * 16;
       const mood: Mood = t < this.moodUntil ? this.mood : this.phase === 'over' ? 'shock' : 'calm';
-      drawPea(ctx, cx + tb.x + tb.w / 2, py, mood, this.bgF > 24);
+      drawPea(ctx, cx + tb.x + tb.w / 2, py, mood, this.bgF > 24, this.look);
     }
 
     const cur = this.cur;
