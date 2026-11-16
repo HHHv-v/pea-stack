@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Shop, { Coin } from './Shop';
 import { ACCS, type AccId, BEANS, type BeanId, isOwned, itemKey } from './game/cosmetics';
 import { PeaStackGame, STAGE_FLOORS } from './game/engine';
-import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, refreshDaily, saveProgress, spendCoinRun, touchStreak } from './game/progress';
+import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, nextStreakGoal, refreshDaily, saveProgress, spendCoinRun, streakBonus, streakIfPlayedToday, touchStreak } from './game/progress';
 import { Sound } from './game/sound';
 import {
   canOpenLeaderboard,
@@ -30,6 +30,7 @@ interface OverInfo {
   runCoins: number; // 이번 판(이어하기 포함) 전체 코인, 2배 광고 보상 기준
   earns: boolean; // 이번 판이 층·딱 코인을 받는 판이었는지
   runsLeft: number; // 이 판이 끝난 뒤 오늘 남은 코인 판
+  streak: { days: number; coins: number } | null; // 이번 판을 시작할 때 받은 연속 출석 보상
 }
 
 /** 개발 서버에서만: ?demo=30 이면 시작하자마자 30층까지 쌓아요(스크린샷용). */
@@ -47,7 +48,13 @@ export default function App() {
   const soundRef = useRef(new Sound());
   const progressRef = useRef<Progress | null>(null);
   const screenRef = useRef<Screen>('home');
-  const runRef = useRef({ awarded: 0, doubled: false, earns: true, counted: false });
+  const runRef = useRef<{ awarded: number; doubled: boolean; earns: boolean; counted: boolean; streak: OverInfo['streak'] }>({
+    awarded: 0,
+    doubled: false,
+    earns: true,
+    counted: false,
+    streak: null,
+  });
 
   const [progress, setProgress] = useState<Progress | null>(null);
   const [screen, setScreenState] = useState<Screen>('home');
@@ -125,8 +132,9 @@ export default function App() {
         const runCoins = coinsForRun({ ...r, earns: run.earns });
         const earned = Math.max(0, runCoins - run.awarded);
         run.awarded = runCoins;
-        // 코인 받는 판은 처음 끝날 때 한 번만 세요(이어하기로 다시 끝나도 그대로)
-        const spend = run.earns && !run.counted;
+        // 코인 받는 판은 처음 끝날 때 한 번만 세요(이어하기로 다시 끝나도 그대로).
+        // 0층에서 바로 끝난 판은 실수로 보고 세지 않아요.
+        const spend = run.earns && !run.counted && r.score > 0;
         run.counted = true;
         updateProgress((p) => {
           const q = { ...p, best: Math.max(p.best, r.score), coins: p.coins + earned };
@@ -136,7 +144,7 @@ export default function App() {
         submitScore(r.score);
         setAdReady(isRewardedAdReady());
         setShared(false);
-        setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins, earns: run.earns, runsLeft });
+        setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins, earns: run.earns, runsLeft, streak: run.streak });
         setScreen('over');
       },
     });
@@ -211,9 +219,18 @@ export default function App() {
     if (!game) return;
     soundRef.current.unlock();
     soundRef.current.ui();
+    // 그날 처음 플레이하면 연속 출석을 갱신하고, 3일째·7일마다 보상 코인을 줘요
+    const firstToday = progressRef.current?.lastPlayed !== dayKey();
     updateProgress((p) => touchStreak(refreshDaily(p)));
+    let streak: OverInfo['streak'] = null;
+    const days = progressRef.current?.streak ?? 0;
+    const bonus = firstToday ? streakBonus(days) : 0;
+    if (bonus > 0) {
+      streak = { days, coins: bonus };
+      updateProgress((q) => ({ ...q, coins: q.coins + bonus }));
+    }
     const p = progressRef.current;
-    runRef.current = { awarded: 0, doubled: false, earns: p ? coinRunsLeft(p) > 0 : true, counted: false };
+    runRef.current = { awarded: 0, doubled: false, earns: p ? coinRunsLeft(p) > 0 : true, counted: false, streak };
     setDoubled(false);
     game.start({ dailyTarget: p?.dailyTarget ?? 10, dailyDone: p?.dailyDoneOn === dayKey() });
     if (DEMO_FLOORS > 0) game.debugBuild(DEMO_FLOORS);
@@ -368,7 +385,7 @@ export default function App() {
                 <span>연속 출석</span>
               </div>
             </div>
-            <CoinNote runsLeft={runsLeft} dailyDone={dailyDone} />
+            <CoinNote progress={progress} runsLeft={runsLeft} dailyDone={dailyDone} />
             <button className="btn" type="button" onClick={start} disabled={!progress}>
               쌓기 시작
             </button>
@@ -398,6 +415,11 @@ export default function App() {
               </div>
             ) : (
               !over.earns && <div className="earned muted">오늘 코인은 다 받았어요</div>
+            )}
+            {over.streak && (
+              <div className="streak-bonus">
+                {over.streak.days}일 연속 출석 보너스 <b>+{over.streak.coins}</b>
+              </div>
             )}
             <p className="coin-sub">
               {over.earns
@@ -474,8 +496,12 @@ export default function App() {
 }
 
 /** 시작 화면: 오늘 코인을 몇 판 더 받을 수 있는지 */
-function CoinNote({ runsLeft, dailyDone }: { runsLeft: number; dailyDone: boolean }) {
+function CoinNote({ progress, runsLeft, dailyDone }: { progress: Progress | null; runsLeft: number; dailyDone: boolean }) {
   const total = COIN_RULES.runsPerDay;
+  const playedToday = progress?.lastPlayed === dayKey();
+  const day = progress ? streakIfPlayedToday(progress) : 1;
+  const todayBonus = playedToday ? 0 : streakBonus(day);
+  const goal = nextStreakGoal(day);
   return (
     <div className="coin-note">
       <div className="dots" aria-hidden="true">
@@ -488,7 +514,11 @@ function CoinNote({ runsLeft, dailyDone }: { runsLeft: number; dailyDone: boolea
       <span>
         {runsLeft > 0 ? `오늘 코인 받는 판 ${runsLeft}/${total}` : '오늘 코인 판은 다 썼어요'}
         <br />
-        <small>{dailyDone ? '오늘의 도전 보상도 받았어요' : `오늘의 도전 달성 +${COIN_RULES.dailyBonus}`}</small>
+        <small>
+          {dailyDone ? '오늘의 도전 보상 받음' : `오늘의 도전 +${COIN_RULES.dailyBonus}`}
+          {' · '}
+          {todayBonus > 0 ? `오늘 출석 +${todayBonus}` : `연속 ${goal.day}일째 +${goal.coins}`}
+        </small>
       </span>
     </div>
   );

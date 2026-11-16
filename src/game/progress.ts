@@ -102,3 +102,22 @@ export function coinsForRun(r: { score: number; perfects: number; dailyCleared: 
   const play = r.earns ? Math.floor(r.score / COIN_RULES.floorsPerCoin) + r.perfects * COIN_RULES.perPerfect : 0;
   return play + (r.dailyCleared ? COIN_RULES.dailyBonus : 0);
 }
+
+/* ---------- 연속 출석 보상 ---------- */
+/** 그날 처음 플레이해서 연속 출석이 streak일이 됐을 때 주는 코인. 3일째 10개, 7일마다 30개. */
+export function streakBonus(streak: number) {
+  if (streak > 0 && streak % 7 === 0) return 30;
+  if (streak === 3) return 10;
+  return 0;
+}
+
+/** 다음 출석 보상이 며칠째인지와 코인 수 */
+export function nextStreakGoal(streak: number) {
+  if (streak < 3) return { day: 3, coins: 10 };
+  return { day: (Math.floor(streak / 7) + 1) * 7, coins: 30 };
+}
+
+/** 오늘 한 판 하면(했으면) 연속 출석이 며칠째가 되는지 */
+export function streakIfPlayedToday(p: Progress) {
+  return touchStreak(p).streak;
+}
