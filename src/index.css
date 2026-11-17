@@ -587,15 +587,17 @@ button:focus-visible {
 
 .title {
   margin: 0;
-  text-align: center;
-  font-size: 44px;
-  font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.03em;
-  color: var(--accent);
-  -webkit-text-stroke: 8px #fff;
-  paint-order: stroke fill;
-  filter: drop-shadow(0 4px 0 rgba(43, 37, 64, 0.16));
+  width: 100%;
+  max-width: 340px;
+  line-height: 0;
+}
+
+.title img {
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 6px 0 rgba(43, 37, 64, 0.14));
 }
 
 .title-pea {
@@ -617,6 +619,7 @@ button:focus-visible {
 }
 
 .title-bottom {
+  text-align: center;
   width: 100%;
   max-width: 340px;
   display: flex;
@@ -685,11 +688,29 @@ button:focus-visible {
   }
 
   .title {
-    font-size: 38px;
+    max-width: 290px;
   }
 
   .title-pea canvas {
     width: 96px !important;
     height: 96px !important;
   }
+}
+
+/* 시작 화면 기록 칸: 오늘 달성, 연속 출석 강조 */
+.title-bottom .stat b {
+  font-size: 24px;
+}
+
+.stat.done {
+  background: #e3f5d6;
+}
+
+.stat.done span {
+  color: #4f9a3a;
+  font-weight: 700;
+}
+
+.stat.streak b {
+  color: var(--accent);
 }

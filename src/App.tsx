@@ -359,25 +359,26 @@ export default function App() {
       {screen === 'home' && !shopOpen && (
         <div className="title-screen">
           <h1 className="title">
-            완두콩의
-            <br />
-            높이 쌓기
+            <img src="/title.png" alt="완두콩의 높이 쌓기" draggable={false} />
           </h1>
           <button type="button" className="title-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="내 완두콩 보기">
             <PeaPreview bean={progress?.bean ?? 'pea'} acc={progress?.acc ?? 'none'} size={128} mood="happy" />
           </button>
           <div className="title-bottom">
             <p className="title-how">꾹 눌러 키우고, 같은 폭에서 손을 떼요</p>
-            <div className="title-stats">
-              <span>
-                최고 <b>{progress?.best ?? 0}층</b>
-              </span>
-              <span>
-                {dailyDone ? '오늘의 도전 달성' : '오늘의 도전'} <b>{target}층</b>
-              </span>
-              <span>
-                연속 <b>{progress?.streak ?? 0}일</b>
-              </span>
+            <div className="stats">
+              <div className="stat">
+                <b>{progress?.best ?? 0}층</b>
+                <span>최고 기록</span>
+              </div>
+              <div className={dailyDone ? 'stat done' : 'stat'}>
+                <b>{target}층</b>
+                <span>{dailyDone ? '오늘 달성!' : '오늘의 도전'}</span>
+              </div>
+              <div className="stat streak">
+                <b>{progress?.streak ?? 0}일</b>
+                <span>연속 출석</span>
+              </div>
             </div>
             <CoinNote progress={progress} runsLeft={runsLeft} />
             <button className="btn" type="button" onClick={start} disabled={!progress}>
