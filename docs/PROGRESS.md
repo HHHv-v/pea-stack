@@ -2,6 +2,15 @@
 
 다음에 이어서 작업할 때 이 파일부터 보세요. 최신 내용이 위에 있어요.
 
+## 2026-11-17 오후: 등급분류를 원스토어 AI Game(웹)으로
+- 원스토어 정책상 AI 도구로 만든 게임은 'AI를 활용한 게임: 예' → Web 상품으로만 등록 가능. APK 경로는 쓰지 않음
+- 원스토어 상품 등록 완료: Web AID OH01012863
+- 레포를 공개로 전환하고 GitHub Pages(gh-pages 브랜치)로 웹 배포: https://hhhv-v.github.io/pea-stack/
+- 원스토어 H5 SDK v1.1.0 연동(`src/platform/onestore.ts`, `vite.config.ts`의 onestore 모드). `npm run build:web` → dist-web을 gh-pages에 올림
+  - initializeAsync → setLoadingProgress(100) → startGameAsync, pause/resume에 소리 멈춤, 뒤로가기는 꾸미기·종료 모달부터 닫기
+  - 토스 빌드(.ait)에는 SDK가 들어가지 않음
+- 원스토어 기본정보: 광고 아니오, 실행·테스트 URL 위 주소, 화면 세로
+
 ## 2026-11-17 오전
 - 콘솔에 리워드 광고 그룹 '보상형 광고' 생성(ait.v2.live.e70c8fbc59874f7d). `.env.production`에 넣고 빌드(광고 ID는 번들에 그대로 들어가는 공개값이라 커밋함)
 - 사업자 등록: 인앱 광고는 예상 수익 5,000원까지 유예. 그 전에 등록·승인(영업일 1일) 필요

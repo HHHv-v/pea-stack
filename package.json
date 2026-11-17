@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build && ait build",
     "deploy": "ait deploy",
+    "build:web": "tsc -b && vite build --mode onestore --base=/pea-stack/ --outDir dist-web",
     "lint": "oxlint src",
     "preview": "vite preview",
     "android": "tsc -b && vite build && cap sync android && cap open android",

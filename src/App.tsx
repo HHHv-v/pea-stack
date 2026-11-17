@@ -20,6 +20,7 @@ import {
   showRewardedAd,
   submitScore,
 } from './platform/toss';
+import { initOneStore } from './platform/onestore';
 
 type Screen = 'home' | 'play' | 'over';
 
@@ -205,6 +206,30 @@ export default function App() {
   /* 뒤로가기: 꾸미기가 열려 있으면 닫고, 아니면 종료 확인 모달(검수 기준). */
   const shopOpenRef = useRef(false);
   shopOpenRef.current = shopOpen;
+  const confirmExitRef = useRef(false);
+  confirmExitRef.current = confirmExit;
+
+  /* 원스토어 앱 안에서 실행될 때: 일시정지·재개, 안드로이드 뒤로가기 */
+  useEffect(() => {
+    void initOneStore({
+      pause: () => {
+        gameRef.current?.cancelHold();
+        soundRef.current.suspend();
+      },
+      resume: () => soundRef.current.resume(),
+      back: () => {
+        if (shopOpenRef.current) {
+          setShopOpen(false);
+          return true;
+        }
+        if (confirmExitRef.current) {
+          setConfirmExit(false);
+          return true;
+        }
+        return false; // 원스토어 앱의 종료 확인 팝업
+      },
+    });
+  }, []);
   useEffect(
     () =>
       onBack(() => {
