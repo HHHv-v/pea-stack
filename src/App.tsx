@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Shop, { Coin } from './Shop';
+import Shop, { Coin, PeaPreview } from './Shop';
 import { ACCS, type AccId, BEANS, type BeanId, isOwned, itemKey } from './game/cosmetics';
 import { PeaStackGame, STAGE_FLOORS } from './game/engine';
-import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, nextStreakGoal, refreshDaily, saveProgress, spendCoinRun, streakBonus, streakIfPlayedToday, touchStreak } from './game/progress';
+import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, refreshDaily, saveProgress, spendCoinRun, streakBonus, streakIfPlayedToday, touchStreak } from './game/progress';
 import { Sound } from './game/sound';
 import {
   canOpenLeaderboard,
@@ -219,7 +219,7 @@ export default function App() {
     if (!game) return;
     soundRef.current.unlock();
     soundRef.current.ui();
-    // 그날 처음 플레이하면 연속 출석을 갱신하고, 3일째·7일마다 보상 코인을 줘요
+    // 그날 처음 플레이하면 연속 출석을 갱신하고, 출석 코인(매일 5, 7일째마다 +20)을 줘요
     const firstToday = progressRef.current?.lastPlayed !== dayKey();
     updateProgress((p) => touchStreak(refreshDaily(p)));
     let streak: OverInfo['streak'] = null;
@@ -357,35 +357,29 @@ export default function App() {
       )}
 
       {screen === 'home' && !shopOpen && (
-        <div className="sheet">
-          <div className="card">
-            <h1>
-              완두콩의
-              <br />
-              높이 쌓기
-            </h1>
-            <p className="lead">
-              꾹 누르면 막대가 자라요.
-              <br />
-              아래층과 같은 폭일 때 손을 떼세요.
-              <br />
-              소리를 들으면 딱 맞는 음이 있어요.
-            </p>
-            <div className="stats">
-              <div className="stat">
-                <b>{progress?.best ?? 0}층</b>
-                <span>최고 기록</span>
-              </div>
-              <div className="stat">
-                <b>{target}층</b>
-                <span>{dailyDone ? '오늘 달성!' : '오늘의 도전'}</span>
-              </div>
-              <div className="stat">
-                <b>{progress?.streak ?? 0}일</b>
-                <span>연속 출석</span>
-              </div>
+        <div className="title-screen">
+          <h1 className="title">
+            완두콩의
+            <br />
+            높이 쌓기
+          </h1>
+          <button type="button" className="title-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="완두콩 꾸미기">
+            <PeaPreview bean={progress?.bean ?? 'pea'} acc={progress?.acc ?? 'none'} size={128} mood="happy" />
+          </button>
+          <div className="title-bottom">
+            <p className="title-how">꾹 눌러 키우고, 같은 폭에서 손을 떼요</p>
+            <div className="title-stats">
+              <span>
+                최고 <b>{progress?.best ?? 0}층</b>
+              </span>
+              <span>
+                {dailyDone ? '오늘의 도전 달성' : '오늘의 도전'} <b>{target}층</b>
+              </span>
+              <span>
+                연속 <b>{progress?.streak ?? 0}일</b>
+              </span>
             </div>
-            <CoinNote progress={progress} runsLeft={runsLeft} dailyDone={dailyDone} />
+            <CoinNote progress={progress} runsLeft={runsLeft} />
             <button className="btn" type="button" onClick={start} disabled={!progress}>
               쌓기 시작
             </button>
@@ -418,7 +412,7 @@ export default function App() {
             )}
             {over.streak && (
               <div className="streak-bonus">
-                {over.streak.days}일 연속 출석 보너스 <b>+{over.streak.coins}</b>
+                {over.streak.coins > 5 ? `${over.streak.days}일 연속 출석` : '오늘 출석'} <b>+{over.streak.coins}</b>
               </div>
             )}
             <p className="coin-sub">
@@ -496,31 +490,22 @@ export default function App() {
 }
 
 /** 시작 화면: 오늘 코인을 몇 판 더 받을 수 있는지 */
-function CoinNote({ progress, runsLeft, dailyDone }: { progress: Progress | null; runsLeft: number; dailyDone: boolean }) {
+function CoinNote({ progress, runsLeft }: { progress: Progress | null; runsLeft: number }) {
   const total = COIN_RULES.runsPerDay;
   const playedToday = progress?.lastPlayed === dayKey();
-  const day = progress ? streakIfPlayedToday(progress) : 1;
-  const todayBonus = playedToday ? 0 : streakBonus(day);
-  const goal = nextStreakGoal(day);
+  const attend = !playedToday && progress ? streakBonus(streakIfPlayedToday(progress)) : 0;
   return (
-    <div className="coin-note">
-      <div className="dots" aria-hidden="true">
+    <p className="coin-note">
+      <span className="dots" aria-hidden="true">
         {Array.from({ length: total }, (_, i) => (
           <span key={i} className={i < total - runsLeft ? 'dot used' : 'dot'}>
-            <Coin size={16} />
+            <Coin size={14} />
           </span>
         ))}
-      </div>
-      <span>
-        {runsLeft > 0 ? `오늘 코인 받는 판 ${runsLeft}/${total}` : '오늘 코인 판은 다 썼어요'}
-        <br />
-        <small>
-          {dailyDone ? '오늘의 도전 보상 받음' : `오늘의 도전 +${COIN_RULES.dailyBonus}`}
-          {' · '}
-          {todayBonus > 0 ? `오늘 출석 +${todayBonus}` : `연속 ${goal.day}일째 +${goal.coins}`}
-        </small>
       </span>
-    </div>
+      {runsLeft > 0 ? `코인 받는 판 ${runsLeft}번 남음` : '오늘 코인 판은 끝'}
+      {attend > 0 && <em>출석 +{attend}</em>}
+    </p>
   );
 }
 

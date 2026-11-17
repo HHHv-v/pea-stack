@@ -31,7 +31,7 @@ export interface AccStyle {
 
 /*
  * 가격 기준: 코인은 하루 첫 2판(판당 보통 6~8개)과 오늘의 도전(20개)으로 하루 30개 남짓 모여요.
- * 싼 건 하루 이틀, 중간은 일주일, 가장 비싼 건 2주 정도 걸리게 잡았어요.
+ * 싼 건 하루 이틀, 중간은 일주일쯤, 무지개콩·왕관(1000)은 한 달쯤 모아야 하는 목표예요.
  */
 export const BEANS: BeanStyle[] = [
   { id: 'pea', name: '완두콩', price: 0, body: '#A9E28B', outline: '#6DB658', shade: 'rgba(96,170,80,.22)', ink: '#3F4A3A', cheek: 'rgba(255,150,160,.6)' },
@@ -45,7 +45,7 @@ export const BEANS: BeanStyle[] = [
   { id: 'sky', name: '하늘콩', price: 180, body: '#B6DBFF', outline: '#6EA4DE', shade: 'rgba(50,110,180,.2)', ink: '#2E3D52', cheek: 'rgba(255,150,170,.55)' },
   { id: 'cotton', name: '솜사탕콩', price: 220, body: '#E4D0F0', grad: ['#FFC6DE', '#E4D0F0', '#BFE0FF'], outline: '#B795C8', shade: 'rgba(130,90,160,.16)', ink: '#463A52', cheek: 'rgba(255,120,160,.5)' },
   { id: 'gold', name: '황금콩', price: 300, body: '#FFD45E', sparkle: true, outline: '#D69B12', shade: 'rgba(200,130,0,.22)', ink: '#4A3510', cheek: 'rgba(255,140,110,.55)' },
-  { id: 'rainbow', name: '무지개콩', price: 450, body: '#C9E6B0', grad: ['#FFA3A3', '#FFD98A', '#B8E89A', '#9CD3FF', '#C9AEFF'], sparkle: true, outline: '#8C7CC0', shade: 'rgba(80,60,140,.14)', ink: '#3A3450', cheek: 'rgba(255,120,150,.5)' },
+  { id: 'rainbow', name: '무지개콩', price: 1000, body: '#C9E6B0', grad: ['#FFA3A3', '#FFD98A', '#B8E89A', '#9CD3FF', '#C9AEFF'], sparkle: true, outline: '#8C7CC0', shade: 'rgba(80,60,140,.14)', ink: '#3A3450', cheek: 'rgba(255,120,150,.5)' },
 ];
 
 export const ACCS: AccStyle[] = [
@@ -62,7 +62,7 @@ export const ACCS: AccStyle[] = [
   { id: 'headphones', name: '헤드폰', price: 180, helmet: 0 },
   { id: 'gradcap', name: '학사모', price: 200, helmet: 4 },
   { id: 'halo', name: '천사 링', price: 250, helmet: 6 },
-  { id: 'crown', name: '왕관', price: 350, helmet: 6 },
+  { id: 'crown', name: '왕관', price: 1000, helmet: 6 },
 ];
 
 export const beanStyle = (id: BeanId) => BEANS.find((b) => b.id === id) ?? BEANS[0];

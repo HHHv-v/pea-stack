@@ -459,41 +459,6 @@ button:focus-visible {
   font-weight: 700;
 }
 
-/* 오늘 코인 받는 판 */
-.coin-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 16px;
-  background: #f3ebdd;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--ink);
-  text-align: left;
-}
-
-.coin-note small {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.coin-note .dots {
-  display: flex;
-  gap: 3px;
-}
-
-.coin-note .dot {
-  display: inline-flex;
-}
-
-.coin-note .dot.used {
-  filter: grayscale(1);
-  opacity: 0.35;
-}
-
 .earned.muted {
   background: #f3ebdd;
   color: var(--muted);
@@ -601,5 +566,130 @@ button:focus-visible {
 
   .card.shop .grid {
     min-height: 96px;
+  }
+}
+
+/* ---------- 시작 화면: 카드 없이 하늘 위에 제목, 아래에 버튼 ---------- */
+.title-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(84px + var(--safe-top)) 20px calc(20px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.title-screen > * {
+  pointer-events: auto;
+}
+
+.title {
+  margin: 0;
+  text-align: center;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  -webkit-text-stroke: 8px #fff;
+  paint-order: stroke fill;
+  filter: drop-shadow(0 4px 0 rgba(43, 37, 64, 0.16));
+}
+
+.title-pea {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  animation: pea-bob 2.4s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes pea-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-pea { animation: none; }
+}
+
+.title-bottom {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 26px;
+  background: rgba(255, 250, 240, 0.94);
+  box-shadow: 0 12px 0 rgba(43, 37, 64, 0.12);
+}
+
+.title-how {
+  margin: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.title-stats {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.title-stats b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.coin-note {
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.coin-note .dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.coin-note .dot {
+  display: inline-flex;
+}
+
+.coin-note .dot.used {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.coin-note em {
+  font-style: normal;
+  font-weight: 700;
+  color: #c9921a;
+}
+
+@media (max-height: 720px) {
+  .title-screen {
+    padding-top: calc(70px + var(--safe-top));
+  }
+
+  .title {
+    font-size: 38px;
+  }
+
+  .title-pea canvas {
+    width: 96px !important;
+    height: 96px !important;
   }
 }

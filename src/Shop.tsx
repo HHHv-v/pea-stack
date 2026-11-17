@@ -15,7 +15,7 @@ interface Props {
 type Tab = 'bean' | 'acc';
 
 /** 완두콩을 크게 그려 보여주는 캔버스 */
-function PeaPreview({ bean, acc, size, mood = 'calm' }: { bean: BeanId; acc: AccId; size: number; mood?: 'calm' | 'happy' }) {
+export function PeaPreview({ bean, acc, size, mood = 'calm' }: { bean: BeanId; acc: AccId; size: number; mood?: 'calm' | 'happy' }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
