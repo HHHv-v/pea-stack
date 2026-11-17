@@ -358,13 +358,11 @@ export default function App() {
 
       {screen === 'home' && !shopOpen && (
         <div className="title-screen">
-          <h1 className="title">
-            <img src="/title.png" alt="완두콩의 높이 쌓기" draggable={false} />
-          </h1>
           <button type="button" className="title-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="내 완두콩 보기">
             <PeaPreview bean={progress?.bean ?? 'pea'} acc={progress?.acc ?? 'none'} size={128} mood="happy" />
           </button>
           <div className="title-bottom">
+            <h1 className="title-name">완두콩의 높이 쌓기</h1>
             <p className="title-how">꾹 눌러 키우고, 같은 폭에서 손을 떼요</p>
             <div className="stats">
               <div className="stat">

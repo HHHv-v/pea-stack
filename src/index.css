@@ -576,8 +576,9 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: calc(84px + var(--safe-top)) 20px calc(20px + env(safe-area-inset-bottom));
+  justify-content: flex-end;
+  gap: 28px;
+  padding: calc(64px + var(--safe-top)) 20px calc(64px + env(safe-area-inset-bottom));
   pointer-events: none;
 }
 
@@ -585,22 +586,17 @@ button:focus-visible {
   pointer-events: auto;
 }
 
-.title {
+.title-name {
   margin: 0;
-  width: 100%;
-  max-width: 340px;
-  line-height: 0;
-}
-
-.title img {
-  width: 100%;
-  height: auto;
-  user-select: none;
-  -webkit-user-drag: none;
-  filter: drop-shadow(0 6px 0 rgba(43, 37, 64, 0.14));
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  color: var(--accent);
 }
 
 .title-pea {
+  margin: auto 0;
   border: 0;
   padding: 0;
   background: none;
@@ -684,11 +680,12 @@ button:focus-visible {
 
 @media (max-height: 720px) {
   .title-screen {
-    padding-top: calc(70px + var(--safe-top));
+    gap: 16px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
   }
 
-  .title {
-    max-width: 290px;
+  .title-name {
+    font-size: 25px;
   }
 
   .title-pea canvas {
