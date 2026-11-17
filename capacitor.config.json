@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.hhhvv.peastack",
+  "appName": "완두콩의 높이 쌓기",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#78C8FF"
+  }
+}
