@@ -363,7 +363,7 @@ export default function App() {
             <br />
             높이 쌓기
           </h1>
-          <button type="button" className="title-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="완두콩 꾸미기">
+          <button type="button" className="title-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="내 완두콩 보기">
             <PeaPreview bean={progress?.bean ?? 'pea'} acc={progress?.acc ?? 'none'} size={128} mood="happy" />
           </button>
           <div className="title-bottom">
