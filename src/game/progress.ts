@@ -5,15 +5,15 @@ export const dayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1
 
 /**
  * 오늘의 도전 층수. 그 사람의 최고 기록에 맞춰 정해요.
- * - 처음에는 10층
- * - 그 뒤로는 최고 기록의 85% 근처에서, 날짜마다 -2~+3층씩 흔들려요
+ * - 처음에는 30층
+ * - 그 뒤로는 최고 기록의 85% 근처에서, 날짜마다 -4~+6층씩 흔들려요(20~200층)
  * - 하루 동안은 바뀌지 않도록 그날 처음 정한 값을 저장해 둬요
  */
 export function dailyTargetFor(best: number, d = new Date()) {
-  if (best <= 0) return 10;
+  if (best <= 0) return 30;
   const n = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
   const jitter = (((n * 9301 + 49297) % 233280) % 6) - 2;
-  return Math.max(8, Math.min(80, Math.round(best * 0.85) + jitter));
+  return Math.max(20, Math.min(200, Math.round(best * 0.85) + jitter * 2));
 }
 
 export interface Progress {
@@ -79,10 +79,10 @@ export function touchStreak(p: Progress): Progress {
 
 /* ---------- 코인 ---------- */
 export const COIN_RULES = {
-  floorsPerCoin: 3, // 3층마다 1개
-  perPerfect: 1, // 딱 맞출 때마다 추가로
+  floorsPerCoin: 5, // 5층마다 1개
+  perfectsPerCoin: 10, // 딱 10번마다 1개 추가
   dailyBonus: 20, // 오늘의 도전 달성(하루 한 번, 판 수 제한과 별개)
-  runsPerDay: 2, // 층·딱 코인은 하루 첫 2판만
+  runsPerDay: 3, // 층·딱 코인은 하루 첫 3판만
 } as const;
 
 /** 오늘 층·딱 코인을 더 받을 수 있는 판 수 */
@@ -97,9 +97,9 @@ export function spendCoinRun(p: Progress, today = dayKey()): Progress {
   return { ...p, coinDay: today, coinRuns: used + 1 };
 }
 
-/** 한 판에서 받는 코인. earns가 false면(오늘 2판을 다 썼으면) 오늘의 도전 보상만 받아요. */
+/** 한 판에서 받는 코인. earns가 false면(오늘 코인 판을 다 썼으면) 오늘의 도전 보상만 받아요. */
 export function coinsForRun(r: { score: number; perfects: number; dailyCleared: boolean; earns: boolean }) {
-  const play = r.earns ? Math.floor(r.score / COIN_RULES.floorsPerCoin) + r.perfects * COIN_RULES.perPerfect : 0;
+  const play = r.earns ? Math.floor(r.score / COIN_RULES.floorsPerCoin) + Math.floor(r.perfects / COIN_RULES.perfectsPerCoin) : 0;
   return play + (r.dailyCleared ? COIN_RULES.dailyBonus : 0);
 }
 

@@ -9,7 +9,7 @@
  * - 블록마다 자라는 속도가 달라서 박자로 외울 수 없어요.
  */
 import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
-import { BH, FONT, type Mood, clamp01, drawPea, drawPot, drawSky, drawSlab, isNightSky, roundRect, skyColors } from './draw';
+import { BH, FONT, type Mood, clamp01, drawPea, drawPot, drawSky, drawSlab, isNightSky, roundRect, skyColors, skyFloor } from './draw';
 import type { AccId, BeanId } from './cosmetics';
 import type { Sound } from './sound';
 
@@ -17,19 +17,29 @@ export type Phase = 'ready' | 'play' | 'over';
 export type Stage = 0 | 1 | 2; // 파란 하늘, 노을, 우주
 
 /** 단계가 바뀌는 층수 */
-export const STAGE_FLOORS = { sunset: 12, space: 26 } as const;
+export const STAGE_FLOORS = { sunset: 25, space: 60 } as const;
 
-/** 난이도. docs/LAUNCH.md 시뮬레이션 기준: 처음 하는 사람 ~13층, 보통 ~17층, 잘하는 사람 ~25층 */
+/**
+ * 난이도. 초반은 넉넉하게 시작해서 층이 올라갈수록 조금씩 빡빡해져요(TUNING.ramp층에서 최종값).
+ * 시뮬레이션(친구들 v4 실제 기록으로 실력 보정): 서툰 사람 ~70층, 보통 ~85층, 잘하는 사람 ~120층.
+ */
 export const TUNING = {
-  perfectRatio: 0.035, // 딱 판정: 아래층 폭의 ±3.5%
+  ramp: 140, // 이 층수에 걸쳐 아래 '시작 → 끝' 값으로 바뀌어요
+  perfectRatio: [0.11, 0.04], // 딱 판정: 아래층 폭의 ±11% → ±4%
   perfectMinPx: 3.5,
-  recoverAfter: 3, // 몇 번 연속 딱부터 폭이 회복되는지
-  recoverPx: 6,
-  missPenalty: 1.4, // 틀린 폭의 몇 배만큼 좁아지는지
-  speedBase: 140, // 막대가 자라는 속도(px/s)
-  speedPerFloor: 5,
-  speedMax: 400,
+  missPenalty: [0.25, 0.9], // 틀린 폭의 몇 배만큼 좁아지는지
+  recoverAfter: 2, // 몇 번 연속 딱부터 폭이 회복되는지
+  recoverPx: 10,
+  speedBase: 115, // 막대가 자라는 속도(px/s)
+  speedPerFloor: 1.2,
+  speedMax: 280,
 } as const;
+
+/** 층수 n에서의 값(시작 → 끝을 ramp층에 걸쳐 직선으로) */
+export function tuned(pair: readonly [number, number], n: number) {
+  const t = Math.min(1, Math.max(0, n / TUNING.ramp));
+  return pair[0] + (pair[1] - pair[0]) * t;
+}
 
 export interface GameCallbacks {
   onScore?: (score: number) => void;
@@ -242,7 +252,7 @@ export class PeaStackGame {
     const c = top.x + top.w / 2;
     const w = cur.w;
     const diff = w - top.w;
-    const tol = Math.max(TUNING.perfectMinPx, top.w * TUNING.perfectRatio);
+    const tol = Math.max(TUNING.perfectMinPx, top.w * tuned(TUNING.perfectRatio, n));
     const y = this.blockY(n);
 
     if (Math.abs(diff) <= tol) {
@@ -268,7 +278,7 @@ export class PeaStackGame {
       this.setMood('happy', 700);
     } else {
       const err = Math.abs(diff);
-      const nw = top.w - err * TUNING.missPenalty;
+      const nw = top.w - err * tuned(TUNING.missPenalty, n);
       this.combo = 0;
       const cut = (w - Math.max(0, nw)) / 2; // 양쪽 가장자리에서 부서지는 폭
       if (cut > 1) {
@@ -352,7 +362,7 @@ export class PeaStackGame {
     this.bgF += (this.score - this.bgF) * Math.min(1, dt * 2.5);
     this.shake *= Math.exp(-dt * 13);
 
-    const night = isNightSky(skyColors(this.bgF)[0]);
+    const night = isNightSky(skyColors(skyFloor(this.bgF))[0]);
     if (night !== this.night) {
       this.night = night;
       this.cb.onNight?.(night);
@@ -362,7 +372,7 @@ export class PeaStackGame {
   private render(t: number, dt: number) {
     const { ctx, W, H } = this;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    drawSky(ctx, W, H, this.bgF, t, this.cam);
+    drawSky(ctx, W, H, skyFloor(this.bgF), t, this.cam);
 
     ctx.save();
     if (!reduceMotion() && this.shake > 0.1) ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
@@ -383,7 +393,7 @@ export class PeaStackGame {
       const k = clamp01((t - tb.t) / 260);
       const py = this.blockY(i) + (1 - k) * BH - Math.sin(Math.PI * k) * 16;
       const mood: Mood = t < this.moodUntil ? this.mood : this.phase === 'over' ? 'shock' : 'calm';
-      drawPea(ctx, cx + tb.x + tb.w / 2, py, mood, this.bgF > 24, this.look);
+      drawPea(ctx, cx + tb.x + tb.w / 2, py, mood, skyFloor(this.bgF) > 24, this.look);
     }
 
     const cur = this.cur;

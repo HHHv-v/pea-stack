@@ -257,7 +257,7 @@ export default function App() {
     const p = progressRef.current;
     runRef.current = { awarded: 0, doubled: false, earns: p ? coinRunsLeft(p) > 0 : true, counted: false, streak };
     setDoubled(false);
-    game.start({ dailyTarget: p?.dailyTarget ?? 10, dailyDone: p?.dailyDoneOn === dayKey() });
+    game.start({ dailyTarget: p?.dailyTarget ?? 30, dailyDone: p?.dailyDoneOn === dayKey() });
     if (DEMO_FLOORS > 0) game.debugBuild(DEMO_FLOORS);
     setOver(null);
     setScreen('play');
@@ -443,9 +443,9 @@ export default function App() {
               {over.earns
                 ? over.runsLeft > 0
                   ? `오늘 코인 받는 판 ${over.runsLeft}번 남았어요`
-                  : '오늘 코인 받는 판을 다 썼어요. 내일 다시 2판!'
+                  : `오늘 코인 받는 판을 다 썼어요. 내일 다시 ${COIN_RULES.runsPerDay}판!`
                 : dailyDone
-                  ? '내일 다시 2판 동안 코인을 받아요'
+                  ? `내일 다시 ${COIN_RULES.runsPerDay}판 동안 코인을 받아요`
                   : `오늘의 도전을 달성하면 ${COIN_RULES.dailyBonus}코인은 받을 수 있어요`}
             </p>
             {canRevive && (

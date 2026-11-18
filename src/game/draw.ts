@@ -10,7 +10,30 @@ export type Mood = 'calm' | 'happy' | 'shock';
 export const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const mix = (a: RGB, b: RGB, k: number): RGB => [0, 1, 2].map((i) => Math.round(a[i] + (b[i] - a[i]) * k)) as RGB;
 
-/* 하늘 3단계: 파란 하늘(0~8층) → 주황 노을(14~20층) → 우주(28층~) */
+/**
+ * 하늘 색은 '하늘 층' 기준으로 그려요(파란 하늘 0~8 → 노을 14~20 → 우주 28~).
+ * 실제 층수는 skyFloor()로 이 기준에 맞춰 바꿔요: 노을이 25층, 우주가 60층쯤에 오도록.
+ */
+const SKY_MAP: [number, number][] = [
+  [0, 0],
+  [25, 12],
+  [60, 26],
+  [120, 60],
+];
+
+/** 실제 층수(소수 가능) → 하늘 그림 기준 층수 */
+export function skyFloor(n: number) {
+  for (let i = 0; i < SKY_MAP.length - 1; i++) {
+    const [a, fa] = SKY_MAP[i];
+    const [b, fb] = SKY_MAP[i + 1];
+    if (n <= b) return fa + ((n - a) / (b - a)) * (fb - fa);
+  }
+  const [a, fa] = SKY_MAP[SKY_MAP.length - 2];
+  const [b, fb] = SKY_MAP[SKY_MAP.length - 1];
+  return fb + ((n - b) / (b - a)) * (fb - fa);
+}
+
+/* 하늘 3단계: 파란 하늘(0~8) → 주황 노을(14~20) → 우주(28~), '하늘 층' 기준 */
 const STOPS: [number, RGB, RGB][] = [
   [0, [120, 200, 255], [225, 245, 255]],
   [8, [120, 200, 255], [225, 245, 255]],
