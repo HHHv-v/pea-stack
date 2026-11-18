@@ -2,6 +2,17 @@
 
 다음에 이어서 작업할 때 이 파일부터 보세요. 최신 내용이 위에 있어요.
 
+## 2026-11-18 밤: Microsoft Store 제출 준비 완료
+
+- Partner Center 게임 '완두콩의 높이 쌓기' 예약. Store ID 9MZGWWNL2SWT, 주소 https://apps.microsoft.com/detail/9MZGWWNL2SWT
+  - 패키지 ID 17C4263D.568505F0A570A, 게시자 표시 이름 홍한희
+- 가격: 무료(전 세계). 속성: 게임 > 기타, 싱글 플레이어 PC, 개인정보 처리방침 https://hhhv-v.github.io/pea-stack/privacy.html
+- 연령별 등급: 규정("이미 IARC ID가 있으면 입력해야 함")에 따라 기존 IARC ID 2fe2bca7-… 가져옴(한국 GRAC 전체이용가)
+- Store 목록(한국어): 설명·짧은 설명·기능 3개, 스크린샷 5장(store/msstore/, 1920×1080 PWA 화면)
+- 패키지: PWABuilder로 만든 .msixbundle v1.0.1.0(언어 ko, 데스크톱만). runFullTrust 사유는 제출 옵션에 영어로 적음
+- 남은 일: [하니] '인증을 위해 제출' → 인증(며칠) → 게시 후 게임위 조회 → 앱인토스 등급분류 입력(스토어 링크·Microsoft)
+- 확인 필요: 기존 IARC ID를 가져온 등급이 게임위 조회에서 Microsoft Store 기준으로 나오는지(원스토어 번호만 나오면 토스 채팅 문의)
+
 ## 2026-11-18 밤: Microsoft Store용 PWA 빌드
 
 - 결정: 등급분류를 Microsoft Store(PWA, IARC)로 다시 받기. 개인 개발자 등록 무료, 앱인토스 가이드가 인정하는 스토어
