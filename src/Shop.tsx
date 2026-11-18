@@ -57,8 +57,8 @@ export default function Shop({ coins, owned, bean, acc, onBuy, onEquip, onClose 
   if (equipped) action = { label: '착용 중', disabled: true };
   else if (pickedOwned) action = { label: '착용하기', disabled: false, run: () => onEquip(pick.kind, pick.id) };
   else if (coins >= picked.price)
-    action = { label: `${picked.price} 코인으로 사기`, disabled: false, run: () => onBuy(pick.kind, pick.id, picked.price) };
-  else action = { label: `코인이 ${picked.price - coins}개 모자라요`, disabled: true };
+    action = { label: `${picked.price.toLocaleString()} 코인으로 사기`, disabled: false, run: () => onBuy(pick.kind, pick.id, picked.price) };
+  else action = { label: `코인이 ${(picked.price - coins).toLocaleString()}개 모자라요`, disabled: true };
 
   return (
     <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="shop-title">
@@ -111,7 +111,7 @@ export default function Shop({ coins, owned, bean, acc, onBuy, onEquip, onClose 
                 <span className="item-price">
                   {on ? '착용 중' : own ? '보유' : (
                     <>
-                      <Coin size={11} /> {it.price}
+                      <Coin size={11} /> {it.price.toLocaleString()}
                     </>
                   )}
                 </span>
