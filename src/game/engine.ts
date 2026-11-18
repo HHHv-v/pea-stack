@@ -76,6 +76,7 @@ export class PeaStackGame {
   private H = 0;
   private dpr = 1;
   private raf = 0;
+  private ro: ResizeObserver | null = null;
   private lastT = 0;
   private now = 0;
 
@@ -123,6 +124,12 @@ export class PeaStackGame {
     this.ctx = ctx;
     this.resize();
     this.reset();
+    // 웹뷰에 따라 처음 잰 크기가 CSS 적용 전 기본값(300×150)이거나 0일 수 있어요.
+    // 캔버스 크기가 바뀌면 바로 다시 재요.
+    if (typeof ResizeObserver !== 'undefined') {
+      this.ro = new ResizeObserver(() => this.resize());
+      this.ro.observe(canvas);
+    }
     this.raf = requestAnimationFrame(this.frame);
   }
 
@@ -134,16 +141,26 @@ export class PeaStackGame {
     return !this.revived && this.score > 0;
   }
 
+  /** 캔버스의 실제 화면 크기에 맞춰 그리는 해상도를 맞춰요. 크기가 그대로면 아무것도 안 해요. */
   resize() {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     const r = this.canvas.getBoundingClientRect();
-    this.W = r.width;
-    this.H = r.height;
-    this.canvas.width = Math.round(this.W * this.dpr);
-    this.canvas.height = Math.round(this.H * this.dpr);
+    const w = r.width || window.innerWidth;
+    const h = r.height || window.innerHeight;
+    if (w <= 0 || h <= 0) return; // 아직 화면에 안 붙었어요. 다음에 다시 재요.
+    if (Math.abs(w - this.W) < 0.5 && Math.abs(h - this.H) < 0.5 && dpr === this.dpr) return;
+    this.dpr = dpr;
+    this.W = w;
+    this.H = h;
+    this.canvas.width = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
+    // 시작 전이면 바뀐 폭에 맞춰 받침 폭도 다시 정해요(게임 중에는 쌓인 층을 그대로 둬요).
+    if (this.phase === 'ready' && this.blocks.length <= 1) this.reset();
   }
 
   destroy() {
+    this.ro?.disconnect();
+    this.ro = null;
     cancelAnimationFrame(this.raf);
     this.sound.holdStop();
   }
@@ -339,6 +356,10 @@ export class PeaStackGame {
   }
 
   private frame = (t: number) => {
+    // ResizeObserver가 없거나 늦는 웹뷰를 위한 안전장치: 화면 크기와 다르면 다시 재요.
+    const cw = this.canvas.clientWidth;
+    const ch = this.canvas.clientHeight;
+    if (cw > 0 && ch > 0 && (Math.abs(cw - this.W) > 1 || Math.abs(ch - this.H) > 1)) this.resize();
     this.now = t;
     const dt = Math.min(0.033, (t - this.lastT) / 1000 || 0);
     this.lastT = t;
