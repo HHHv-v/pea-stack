@@ -10,3 +10,4 @@ build/
 .idea/
 *.ait
 dist-web
+dist-pwa

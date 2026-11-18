@@ -97,6 +97,8 @@ npm run dev            # 개발 서버 (오른쪽 아래 AIT 버튼으로 토스
 npm run build          # dist/ + pea-stack.ait (앱인토스 콘솔에 올리는 파일)
 npm run build:web      # 원스토어 웹게임: dist-web/ (원스토어 H5 SDK 포함, /pea-stack/ 경로)
                        # → dist-web 내용을 gh-pages 브랜치에 올려 배포
+npm run build:pwa      # Microsoft Store용 PWA: dist-pwa/ (/pea-stack/pwa/ 경로, 매니페스트·서비스 워커 포함)
+                       # → dist-pwa 내용을 gh-pages 브랜치의 pwa/ 폴더에 올려 배포
 npm run deploy         # ait deploy (콘솔 API 키 필요)
 npm run lint
 npm run android        # (예전) 등급분류용 안드로이드 앱. 웹게임으로 등급을 받아서 지금은 필요 없음

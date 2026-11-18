@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build && ait build",
     "deploy": "ait deploy",
     "build:web": "tsc -b && vite build --mode onestore --base=/pea-stack/ --outDir dist-web",
+    "build:pwa": "tsc -b && vite build --mode pwa --base=/pea-stack/pwa/ --outDir dist-pwa",
     "lint": "oxlint src",
     "preview": "vite preview",
     "android": "tsc -b && vite build && cap sync android && cap open android",
@@ -30,7 +31,8 @@
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.90.0",
     "typescript": "~7.0.2",
-    "vite": "^8.3.6"
+    "vite": "^8.3.6",
+    "vite-plugin-pwa": "^2.0.0"
   },
   "engines": {
     "node": ">=24"
