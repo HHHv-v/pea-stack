@@ -251,8 +251,7 @@ export class PeaStackGame {
       hold: false,
       speed:
         Math.min(TUNING.speedBase + n * TUNING.speedPerFloor, TUNING.speedMax) *
-        (1 + Math.min(this.combo * TUNING.comboSpeedUp, TUNING.comboSpeedMax)) *
-        (0.75 + Math.random() * 0.6),
+        (1 + Math.min(this.combo * TUNING.comboSpeedUp, TUNING.comboSpeedMax)),
       hue: nextHue(this.blocks[n - 1].hue),
     };
   }
