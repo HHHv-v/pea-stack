@@ -27,8 +27,6 @@ export const TUNING = {
   ramp: 140, // 이 층수에 걸쳐 아래 '시작 → 끝' 값으로 바뀌어요
   perfectMinPx: 3.5,
   missPenalty: [0.25, 0.9], // 틀린 폭의 몇 배만큼 좁아지는지
-  recoverAfter: 2, // 몇 번 연속 딱부터 폭이 회복되는지
-  recoverPx: 10,
   speedBase: 140, // 막대가 자라는 속도(px/s)
   speedPerFloor: 1.6,
   speedMax: 320,
@@ -300,8 +298,7 @@ export class PeaStackGame {
     if (Math.abs(diff) <= tol && top.w >= this.baseW * TUNING.noPerfectBelowRatio) {
       this.combo++;
       this.perfects++;
-      let nw = top.w;
-      if (this.combo >= TUNING.recoverAfter && nw < this.baseW) nw = Math.min(this.baseW, nw + TUNING.recoverPx);
+      const nw = top.w; // 딱이면 아래층과 같은 폭 그대로(v8부터 콤보로 폭이 회복되지 않아요)
       const nx = c - nw / 2;
       this.blocks.push({ x: nx, w: nw, hue: cur.hue, t: now, flash: now });
       this.rings.push({ x: nx, y, w: nw, t: now });
