@@ -36,6 +36,7 @@ export const TUNING = {
   minWidthRatio: 0.15,
   comboSpeedUp: 0.08, // 연속 딱 1번마다 막대 속도 +8% (층과 상관없이, 실수하면 원래대로)
   comboSpeedMax: 1.0, // 최대 +100% (13콤보부터)
+  noPerfectBelowRatio: 0.25, // 탑 폭이 시작 폭의 25%보다 좁으면 '딱!'이 나오지 않아요(좁은 탑에서 연타로 콤보 쌓기 방지)
   swingMax: 1.7, // 누르는 동안 막대가 아래층의 이 배수까지 자랐다가 다시 줄어들어요
 } as const;
 
@@ -68,7 +69,7 @@ interface Current { w: number; hold: boolean; speed: number; hue: number; dir: 1
 interface Debris { x: number; y: number; w: number; vx: number; vy: number; r: number; vr: number; hue: number }
 interface Particle { x: number; y: number; vx: number; vy: number; t: number; hue: number }
 interface Ring { x: number; y: number; w: number; t: number }
-interface Float { x: number; y: number; t: number; s: string; big?: boolean }
+interface Float { x: number; y: number; t: number; s: string; big?: boolean; sub?: string }
 
 const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -251,9 +252,15 @@ export class PeaStackGame {
       hold: false,
       speed:
         Math.min(TUNING.speedBase + n * TUNING.speedPerFloor, TUNING.speedMax) *
-        (1 + Math.min(this.combo * TUNING.comboSpeedUp, TUNING.comboSpeedMax)),
+        this.comboSpeed() *
+        (0.75 + Math.random() * 0.6), // 막대마다 무작위: 같은 길이로 누르는 꼼수 방지
       hue: nextHue(this.blocks[n - 1].hue),
     };
+  }
+
+  /** 콤보 가속 배수: 연속 딱 1번마다 +8%, 최대 2배 */
+  private comboSpeed() {
+    return 1 + Math.min(this.combo * TUNING.comboSpeedUp, TUNING.comboSpeedMax);
   }
 
   private blockY(i: number) {
@@ -290,7 +297,7 @@ export class PeaStackGame {
     const tol = Math.max(TUNING.perfectMinPx, top.w * perfectRatio(n));
     const y = this.blockY(n);
 
-    if (Math.abs(diff) <= tol) {
+    if (Math.abs(diff) <= tol && top.w >= this.baseW * TUNING.noPerfectBelowRatio) {
       this.combo++;
       this.perfects++;
       let nw = top.w;
@@ -306,7 +313,11 @@ export class PeaStackGame {
           t: now, hue: cur.hue,
         });
       }
-      this.floats.push({ x: c, y: y - 8, t: now, s: this.combo > 1 ? `딱! ×${this.combo}` : '딱!' });
+      this.floats.push({
+        x: c, y: y - 8, t: now,
+        s: this.combo > 1 ? `딱! ×${this.combo}` : '딱!',
+        sub: `속도 ×${this.comboSpeed().toFixed(2)}${this.comboSpeed() >= 1 + TUNING.comboSpeedMax ? ' 최대!' : ''}`,
+      });
       this.sound.perfect(this.combo);
       this.haptic('success');
       this.shake = 2.5;
@@ -530,8 +541,16 @@ export class PeaStackGame {
       ctx.strokeStyle = 'rgba(43,37,64,.85)';
       ctx.fillStyle = '#fff';
       const yy = f.y - 34 * k;
-      ctx.strokeText(f.s, cx + f.x, yy);
-      ctx.fillText(f.s, cx + f.x, yy);
+      const my = f.sub ? yy - 20 : yy; // 아랫줄이 있으면 큰 글씨를 한 줄 위로
+      ctx.strokeText(f.s, cx + f.x, my);
+      ctx.fillText(f.s, cx + f.x, my);
+      if (f.sub) {
+        ctx.font = `800 15px ${FONT}`;
+        ctx.lineWidth = 4;
+        ctx.fillStyle = '#FFD84D';
+        ctx.strokeText(f.sub, cx + f.x, yy);
+        ctx.fillText(f.sub, cx + f.x, yy);
+      }
       ctx.globalAlpha = 1;
       ctx.lineJoin = 'miter';
     }
