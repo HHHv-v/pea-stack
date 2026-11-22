@@ -70,6 +70,8 @@ if (nw < Math.max(TUNING.minWidthPx, this.baseW * TUNING.minWidthRatio)) gameOve
 - 0~59층은 20층마다 1.5%p, 60층부터는 20층마다 1%p씩 줄이고, 2%에서 더 줄이지 않아요.
 - 막대 속도: `115 + 층 × 1.2`(최대 280) → `140 + 층 × 1.6`(최대 320). 매번 0.75~1.35배 무작위인 건 그대로예요.
 
+- 그래도 "아직 쉽다"는 피드백 → **콤보 가속** 추가. 연속 딱 1번마다 막대 속도 +8%, 최대 +50%예요. 층과 상관없이 붙고, 실수하면 바로 원래 속도로 돌아와요(`TUNING.comboSpeedUp`, `comboSpeedMax`). 잘 맞출수록 빨라져서, 초반에 딱만 이어 가며 쉽게 올라가는 걸 막아요.
+
 ```ts
 export function perfectRatio(n: number) {
   if (n < 60) return 0.09 - 0.015 * Math.floor(n / 20);
