@@ -298,7 +298,7 @@ export class PeaStackGame {
     if (Math.abs(diff) <= tol && top.w >= this.baseW * TUNING.noPerfectBelowRatio) {
       this.combo++;
       this.perfects++;
-      const nw = top.w; // 딱이면 아래층과 같은 폭 그대로(v8부터 콤보로 폭이 회복되지 않아요)
+      const nw = top.w; // 딱이면 아래층과 같은 폭 그대로(v14부터 콤보로 폭이 회복되지 않아요)
       const nx = c - nw / 2;
       this.blocks.push({ x: nx, w: nw, hue: cur.hue, t: now, flash: now });
       this.rings.push({ x: nx, y, w: nw, t: now });
