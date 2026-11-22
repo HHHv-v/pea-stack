@@ -69,7 +69,7 @@ interface Current { w: number; hold: boolean; speed: number; hue: number; dir: 1
 interface Debris { x: number; y: number; w: number; vx: number; vy: number; r: number; vr: number; hue: number }
 interface Particle { x: number; y: number; vx: number; vy: number; t: number; hue: number }
 interface Ring { x: number; y: number; w: number; t: number }
-interface Float { x: number; y: number; t: number; s: string; big?: boolean; sub?: string }
+interface Float { x: number; y: number; t: number; s: string; big?: boolean }
 
 const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -313,11 +313,7 @@ export class PeaStackGame {
           t: now, hue: cur.hue,
         });
       }
-      this.floats.push({
-        x: c, y: y - 8, t: now,
-        s: this.combo > 1 ? `딱! ×${this.combo}` : '딱!',
-        sub: `속도 ×${this.comboSpeed().toFixed(2)}${this.comboSpeed() >= 1 + TUNING.comboSpeedMax ? ' 최대!' : ''}`,
-      });
+      this.floats.push({ x: c, y: y - 8, t: now, s: this.combo > 1 ? `딱! ×${this.combo}` : '딱!' });
       this.sound.perfect(this.combo);
       this.haptic('success');
       this.shake = 2.5;
@@ -541,16 +537,8 @@ export class PeaStackGame {
       ctx.strokeStyle = 'rgba(43,37,64,.85)';
       ctx.fillStyle = '#fff';
       const yy = f.y - 34 * k;
-      const my = f.sub ? yy - 20 : yy; // 아랫줄이 있으면 큰 글씨를 한 줄 위로
-      ctx.strokeText(f.s, cx + f.x, my);
-      ctx.fillText(f.s, cx + f.x, my);
-      if (f.sub) {
-        ctx.font = `800 15px ${FONT}`;
-        ctx.lineWidth = 4;
-        ctx.fillStyle = '#FFD84D';
-        ctx.strokeText(f.sub, cx + f.x, yy);
-        ctx.fillText(f.sub, cx + f.x, yy);
-      }
+      ctx.strokeText(f.s, cx + f.x, yy);
+      ctx.fillText(f.s, cx + f.x, yy);
       ctx.globalAlpha = 1;
       ctx.lineJoin = 'miter';
     }
