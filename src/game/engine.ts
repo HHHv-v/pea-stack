@@ -5,7 +5,7 @@
  * - 누르는 동안 막대가 양옆으로 자라고, 손을 떼면 내려앉아요.
  * - 아래층과 폭이 같으면(오차 3.5% 이내) "딱!". 3번 연속부터는 딱마다 폭이 6px씩 회복돼요.
  * - 틀리면 틀린 폭의 1.4배만큼 탑이 좁아져요(넘친 부분과 가장자리가 함께 부서져요).
- * - 폭이 16px보다 좁아지거나, 아래층의 1.9배까지 누르고 있으면 끝나요.
+ * - 폭이 36px(시작 폭의 15%)보다 좁아지거나, 아래층의 1.9배까지 누르고 있으면 끝나요.
  * - 블록마다 자라는 속도가 달라서 박자로 외울 수 없어요.
  */
 import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
@@ -25,15 +25,26 @@ export const STAGE_FLOORS = { sunset: 25, space: 60 } as const;
  */
 export const TUNING = {
   ramp: 140, // 이 층수에 걸쳐 아래 '시작 → 끝' 값으로 바뀌어요
-  perfectRatio: [0.11, 0.04], // 딱 판정: 아래층 폭의 ±11% → ±4%
   perfectMinPx: 3.5,
   missPenalty: [0.25, 0.9], // 틀린 폭의 몇 배만큼 좁아지는지
   recoverAfter: 2, // 몇 번 연속 딱부터 폭이 회복되는지
   recoverPx: 10,
-  speedBase: 115, // 막대가 자라는 속도(px/s)
-  speedPerFloor: 1.2,
-  speedMax: 280,
+  speedBase: 140, // 막대가 자라는 속도(px/s)
+  speedPerFloor: 1.6,
+  speedMax: 320,
+  minWidthPx: 36, // 탑 폭이 이보다(또는 시작 폭의 15%보다) 좁아지면 끝 — 연타로 버티는 것 방지
+  minWidthRatio: 0.15,
 } as const;
+
+/**
+ * 딱 판정 비율(아래층 폭 대비 ±).
+ * 0~59층: 9%에서 20층마다 1.5%p씩 → 9, 7.5, 6
+ * 60층부터: 20층마다 1%p씩 → 5, 4, 3, 2 — 2%에서 더 줄지 않아요.
+ */
+export function perfectRatio(n: number) {
+  if (n < 60) return 0.09 - 0.015 * Math.floor(n / 20);
+  return Math.max(0.02, 0.06 - 0.01 * (Math.floor((n - 60) / 20) + 1));
+}
 
 /** 층수 n에서의 값(시작 → 끝을 ramp층에 걸쳐 직선으로) */
 export function tuned(pair: readonly [number, number], n: number) {
@@ -269,7 +280,7 @@ export class PeaStackGame {
     const c = top.x + top.w / 2;
     const w = cur.w;
     const diff = w - top.w;
-    const tol = Math.max(TUNING.perfectMinPx, top.w * tuned(TUNING.perfectRatio, n));
+    const tol = Math.max(TUNING.perfectMinPx, top.w * perfectRatio(n));
     const y = this.blockY(n);
 
     if (Math.abs(diff) <= tol) {
@@ -302,7 +313,7 @@ export class PeaStackGame {
         this.debris.push({ x: c - w / 2, y, w: cut, vx: -90, vy: -40, r: 0, vr: -2.4, hue: cur.hue });
         this.debris.push({ x: c + w / 2 - cut, y, w: cut, vx: 90, vy: -40, r: 0, vr: 2.4, hue: cur.hue });
       }
-      if (nw < 16) {
+      if (nw < Math.max(TUNING.minWidthPx, this.baseW * TUNING.minWidthRatio)) {
         if (nw > 1) this.debris.push({ x: c - nw / 2, y, w: nw, vx: 0, vy: 0, r: 0, vr: 1.2, hue: cur.hue });
         this.cur = null;
         this.gameOver();
