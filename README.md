@@ -1,6 +1,10 @@
 # 완두콩의 높이 쌓기 (pea-stack)
 
-토스 앱인토스에 출시할 하이퍼캐주얼 쌓기 게임입니다. 원스토어에는 웹게임으로 출시했어요.
+토스 앱인토스에 출시한 하이퍼캐주얼 쌓기 게임입니다. Microsoft Store(PWA)와 웹에서도 할 수 있어요.
+
+- 토스 앱인토스: 2026-11-22 출시
+- Microsoft Store: https://apps.microsoft.com/detail/9MZGWWNL2SWT
+- 웹: https://hhhv-v.github.io/pea-stack/ (PWA: https://hhhv-v.github.io/pea-stack/pwa/)
 화면을 꾹 눌러 막대를 키우고, 아래층과 같은 폭일 때 손을 떼서 완두콩을 우주까지 올려 보냅니다.
 
 <p>
@@ -11,7 +15,7 @@
 
 ## 현재 상태
 
-현재 버전: **v5.2** (2026-11-18). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md).
+현재 버전: **v8** (2026-11-22, 앱인토스 검토 전). 출시 버전은 v7. 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md).
 
 - [x] 게임 규칙 확정 (꾹 눌러 채우기), 층수에 따라 점점 어려워지는 난이도
 - [x] React + 앱인토스 SDK 3.x 프로젝트, `pea-stack.ait` 빌드
@@ -19,10 +23,13 @@
 - [x] 보상형 광고(이어하기, 코인 2배), 리더보드, 기록 공유, 광고 그룹 ID 연결
 - [x] 코인·출석·오늘의 도전·꾸미기
 - [x] 콘솔 등록 이미지 (`store/`)
-- [x] 원스토어 웹게임 출시 (판매중) — https://hhhv-v.github.io/pea-stack/
-- [x] 게임 등급분류: GRAC ONIA-SG-261117-0003 (2026-11-17, 전체이용가)
-- [ ] 앱인토스 콘솔에 v5.1 업로드, 토스 앱 테스트, 등급분류 정보 입력, 스크린샷 교체, 검토 요청
-- [ ] 사업자·정산 정보 등록 → **[docs/LAUNCH.md](docs/LAUNCH.md)**
+- [x] Microsoft Store 출시 (PWA, Store ID 9MZGWWNL2SWT), 개인정보 처리방침 [privacy.html](https://hhhv-v.github.io/pea-stack/privacy.html)
+- [x] 게임 등급분류: GRAC **MSFT-SG-261117-0096** (Microsoft, 2026-11-17, 전체이용가)
+  - 원스토어 등급(ONIA-SG-261117-0003)도 있지만, 원스토어 AI 게임은 앱인토스에 쓸 수 없어서 Microsoft 등급으로 신청
+- [x] 앱인토스 검토 통과, **v7 출시 (2026-11-22)**
+- [x] 게임제작업 등록 완료 (북구보건소)
+- [ ] v8(난이도 강화, 연타 버그 수정) 업로드 → 토스 앱 테스트 → 검토 요청 → 출시
+- [ ] 사업자등록(띄움스튜디오), 앱인토스 사업자·정산 정보 등록 → **[docs/LAUNCH.md](docs/LAUNCH.md)**
 
 ## 게임 규칙
 
@@ -99,7 +106,7 @@ npm install
 npm run dev            # 개발 서버 (오른쪽 아래 AIT 버튼으로 토스 기능 흉내)
                        # ?demo=30 을 붙이면 30층부터 시작 (개발 서버에서만)
 npm run build          # dist/ + pea-stack.ait (앱인토스 콘솔에 올리는 파일)
-npm run build:web      # 원스토어 웹게임: dist-web/ (원스토어 H5 SDK 포함, /pea-stack/ 경로)
+npm run build:web      # 웹 버전: dist-web/ (/pea-stack/ 경로, 원스토어 H5 SDK 포함)
                        # → dist-web 내용을 gh-pages 브랜치에 올려 배포
 npm run build:pwa      # Microsoft Store용 PWA: dist-pwa/ (/pea-stack/pwa/ 경로, 매니페스트·서비스 워커 포함)
                        # → dist-pwa 내용을 gh-pages 브랜치의 pwa/ 폴더에 올려 배포
@@ -126,6 +133,9 @@ src/
   platform/onestore.ts 원스토어 H5 SDK 연동 (원스토어 빌드에서만 사용)
 store/                 앱인토스 콘솔 등록 이미지 (로고·썸네일·스크린샷)
 store/onestore/        원스토어 등록 이미지 (9:16 스크린샷, 그래픽 이미지)
+store/msstore/         Microsoft Store 스크린샷 (1920×1080) — 앱인토스 등급분류 화면으로도 사용
+public-pwa/            PWA 아이콘 (build:pwa에서만 사용)
+docs/privacy.html      개인정보 처리방침 (gh-pages /privacy.html)
 tools/brand.html       등록 이미지를 게임 그리기 코드로 다시 만드는 페이지
 assets/                안드로이드 앱 아이콘 원본
 android/               (예전) 등급분류용 Capacitor 안드로이드 프로젝트
