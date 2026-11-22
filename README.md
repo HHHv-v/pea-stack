@@ -16,7 +16,7 @@
 
 ## 현재 상태
 
-현재 버전: **v14** (2026-11-22, 앱인토스 검토 요청 — 콘솔 빌드 v8~v14에 걸친 수정을 모은 버전). 토스에 출시된 버전은 v7이고, 웹·Microsoft Store는 v14. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+현재 버전: **v14** (2026-11-23 앱인토스 출시 — 콘솔 빌드 v8~v14에 걸친 수정을 모은 버전). 토스·웹·Microsoft Store 모두 v14. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 - [x] 게임 규칙 확정 (꾹 눌러 채우기), 층수에 따라 점점 어려워지는 난이도
 - [x] React + 앱인토스 SDK 3.x 프로젝트, `pea-stack.ait` 빌드
@@ -30,7 +30,7 @@
 - [x] 앱인토스 검토 통과, **v7 출시 (2026-11-22)**
 - [x] 게임제작업 등록 완료 (북구보건소)
 - [x] v14(난이도 강화, 콤보 가속, 연타 버그 수정) 업로드, 웹·Microsoft Store 배포
-- [ ] v14 앱인토스 검토 통과 → 출시
+- [x] **v14 앱인토스 출시 (2026-11-23)**
 - [ ] 사업자등록, 앱인토스 사업자·정산 정보 등록 → **[docs/LAUNCH.md](docs/LAUNCH.md)**
 
 ## 게임 규칙
