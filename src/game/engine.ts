@@ -5,7 +5,7 @@
  * - 누르는 동안 막대가 양옆으로 자라고, 손을 떼면 내려앉아요.
  * - 아래층과 폭이 같으면(오차 3.5% 이내) "딱!". 3번 연속부터는 딱마다 폭이 6px씩 회복돼요.
  * - 틀리면 틀린 폭의 1.4배만큼 탑이 좁아져요(넘친 부분과 가장자리가 함께 부서져요).
- * - 폭이 36px(시작 폭의 15%)보다 좁아지거나, 아래층의 1.9배까지 누르고 있으면 끝나요.
+ * - 폭이 36px(시작 폭의 15%)보다 좁아지거나, 누르는 동안 막대는 아래층의 1.7배까지 자랐다 줄었다를 반복해요.
  * - 블록마다 자라는 속도가 달라서 박자로 외울 수 없어요.
  */
 import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
@@ -34,6 +34,7 @@ export const TUNING = {
   speedMax: 320,
   minWidthPx: 36, // 탑 폭이 이보다(또는 시작 폭의 15%보다) 좁아지면 끝 — 연타로 버티는 것 방지
   minWidthRatio: 0.15,
+  swingMax: 1.7, // 누르는 동안 막대가 아래층의 이 배수까지 자랐다가 다시 줄어들어요
 } as const;
 
 /**
@@ -61,7 +62,7 @@ export interface GameCallbacks {
 }
 
 interface Block { x: number; w: number; hue: number; t: number; flash: number }
-interface Current { w: number; hold: boolean; speed: number; hue: number }
+interface Current { w: number; hold: boolean; speed: number; hue: number; dir: 1 | -1 }
 interface Debris { x: number; y: number; w: number; vx: number; vy: number; r: number; vr: number; hue: number }
 interface Particle { x: number; y: number; vx: number; vy: number; t: number; hue: number }
 interface Ring { x: number; y: number; w: number; t: number }
@@ -244,6 +245,7 @@ export class PeaStackGame {
     const n = this.blocks.length;
     this.cur = {
       w: 12,
+      dir: 1,
       hold: false,
       speed: Math.min(TUNING.speedBase + n * TUNING.speedPerFloor, TUNING.speedMax) * (0.75 + Math.random() * 0.6),
       hue: nextHue(this.blocks[n - 1].hue),
@@ -268,6 +270,7 @@ export class PeaStackGame {
     this.sound.holdStop();
     cur.hold = false;
     cur.w = 12;
+    cur.dir = 1;
   }
 
   release() {
@@ -383,9 +386,12 @@ export class PeaStackGame {
     const cur = this.cur;
     if (this.phase === 'play' && cur?.hold) {
       const tw = this.blocks[this.blocks.length - 1].w;
-      cur.w += cur.speed * dt;
+      // 아래층의 1.7배까지 자랐다가 다시 줄어들고, 처음 폭까지 줄면 또 자라요(누르는 동안 계속 왕복).
+      const maxW = tw * TUNING.swingMax;
+      cur.w += cur.dir * cur.speed * dt;
+      if (cur.w >= maxW) { cur.w = maxW - (cur.w - maxW); cur.dir = -1; }
+      else if (cur.w <= 12) { cur.w = 12 + (12 - cur.w); cur.dir = 1; }
       this.sound.holdPitch(cur.w / tw);
-      if (cur.w >= tw * 1.9) this.release();
     }
     // 맨 위층이 화면 절반쯤(작은 폰에서는 HUD 아래 365px)에 오도록 카메라를 올려요
     const topTarget = Math.max(this.H * 0.55, 365);
