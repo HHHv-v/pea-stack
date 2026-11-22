@@ -35,7 +35,7 @@ export const TUNING = {
   minWidthPx: 36, // 탑 폭이 이보다(또는 시작 폭의 15%보다) 좁아지면 끝 — 연타로 버티는 것 방지
   minWidthRatio: 0.15,
   comboSpeedUp: 0.08, // 연속 딱 1번마다 막대 속도 +8% (층과 상관없이, 실수하면 원래대로)
-  comboSpeedMax: 0.5, // 최대 +50%
+  comboSpeedMax: 1.0, // 최대 +100% (13콤보부터)
   swingMax: 1.7, // 누르는 동안 막대가 아래층의 이 배수까지 자랐다가 다시 줄어들어요
 } as const;
 
