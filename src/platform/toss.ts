@@ -5,8 +5,10 @@
  * - 어느 쪽이든 실패하면 게임이 멈추지 않도록 조용히 대체 동작을 해요.
  */
 import {
+  Analytics,
   Device,
   Game,
+  Review,
   SafeArea,
   Screen,
   Share,
@@ -257,4 +259,39 @@ export async function shareScore(score: number): Promise<boolean> {
     }
     return false;
   }
+}
+
+/* ---------- 이벤트 기록 (콘솔 전환 지표용) ---------- */
+type LogValue = string | number | boolean;
+
+/** 앱인토스 콘솔에서 전환 지표로 쓸 이벤트를 남겨요. 토스 앱 밖에서는 조용히 무시돼요. */
+export function logEvent(name: string, params: Record<string, LogValue> = {}) {
+  attempt(() => Analytics.log({ log_name: name, log_type: 'event', params })).catch(() => {
+    /* noop */
+  });
+}
+
+/* ---------- 리뷰 요청 ---------- */
+const REVIEW_KEY = 'review_asked';
+let reviewAsked: boolean | null = null;
+
+/**
+ * 리뷰를 딱 한 번만 요청해요(기분 좋은 순간: 최고 기록 갱신 직후).
+ * 지원하지 않는 토스 버전이거나 토스 밖이면 아무것도 하지 않아요.
+ */
+export async function requestReviewOnce() {
+  if (reviewAsked === null) reviewAsked = await loadValue(REVIEW_KEY, false);
+  if (reviewAsked) return;
+  let supported = false;
+  try {
+    supported = Review.request.isSupported();
+  } catch {
+    supported = false;
+  }
+  if (!supported) return;
+  reviewAsked = true;
+  saveValue(REVIEW_KEY, true);
+  attempt(() => Review.request()).catch(() => {
+    /* noop */
+  });
 }

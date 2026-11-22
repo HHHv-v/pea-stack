@@ -16,6 +16,8 @@ import {
   openLeaderboard,
   preloadRewardedAd,
   safeAreaTop,
+  logEvent,
+  requestReviewOnce,
   shareScore,
   showRewardedAd,
   submitScore,
@@ -36,6 +38,8 @@ interface OverInfo {
 
 /** 개발 서버에서만: ?demo=30 이면 시작하자마자 30층까지 쌓아요(스크린샷용). */
 const DEMO_FLOORS = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('demo') ?? 0) : 0;
+/** 리뷰는 이 층 이상에서 최고 기록을 깼을 때만 요청해요(너무 이른 요청 방지). */
+const REVIEW_MIN_FLOOR = 20;
 
 function stageHint(score: number) {
   if (score < STAGE_FLOORS.sunset) return `노을까지 ${STAGE_FLOORS.sunset - score}층`;
@@ -124,7 +128,10 @@ export default function App() {
     const game = new PeaStackGame(canvas, soundRef.current, haptic, {
       onScore: setScore,
       onNight: setNight,
-      onDailyCleared: () => updateProgress((p) => ({ ...p, dailyDoneOn: dayKey() })),
+      onDailyCleared: () => {
+        updateProgress((p) => ({ ...p, dailyDoneOn: dayKey() }));
+        logEvent('daily_clear', { target: progressRef.current?.dailyTarget ?? 0 });
+      },
       onOver: (r) => {
         const prevBest = progressRef.current?.best ?? 0;
         const newBest = r.score > prevBest;
@@ -143,6 +150,11 @@ export default function App() {
         });
         const runsLeft = progressRef.current ? coinRunsLeft(progressRef.current) : 0;
         submitScore(r.score);
+        logEvent('game_over', { score: r.score, perfects: r.perfects, new_best: newBest && r.score > 0, daily_cleared: r.dailyCleared });
+        if (newBest && prevBest > 0 && r.score >= REVIEW_MIN_FLOOR) {
+          // 결과 화면을 먼저 보여준 뒤 리뷰를 요청해요(이전 기록이 있는 사람이 기록을 깬 순간, 평생 한 번)
+          window.setTimeout(() => void requestReviewOnce(), 1500);
+        }
         setAdReady(isRewardedAdReady());
         setShared(false);
         setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins, earns: run.earns, runsLeft, streak: run.streak });
@@ -250,6 +262,7 @@ export default function App() {
     let streak: OverInfo['streak'] = null;
     const days = progressRef.current?.streak ?? 0;
     const bonus = firstToday ? streakBonus(days) : 0;
+    if (firstToday) logEvent('attendance', { days });
     if (bonus > 0) {
       streak = { days, coins: bonus };
       updateProgress((q) => ({ ...q, coins: q.coins + bonus }));
@@ -258,6 +271,7 @@ export default function App() {
     runRef.current = { awarded: 0, doubled: false, earns: p ? coinRunsLeft(p) > 0 : true, counted: false, streak };
     setDoubled(false);
     game.start({ dailyTarget: p?.dailyTarget ?? 30, dailyDone: p?.dailyDoneOn === dayKey() });
+    logEvent('game_start', { first_today: firstToday });
     if (DEMO_FLOORS > 0) game.debugBuild(DEMO_FLOORS);
     setOver(null);
     setScreen('play');
@@ -279,6 +293,7 @@ export default function App() {
     const ok = await watchAd();
     setAdBusy(null);
     if (!ok) return;
+    logEvent('ad_reward', { kind: 'revive' });
     gameRef.current?.revive();
     setOver(null);
     setScreen('play');
@@ -290,6 +305,7 @@ export default function App() {
     const ok = await watchAd();
     setAdBusy(null);
     if (!ok) return;
+    logEvent('ad_reward', { kind: 'double' });
     runRef.current.doubled = true;
     setDoubled(true);
     const bonus = over.runCoins;
@@ -301,7 +317,9 @@ export default function App() {
   const share = async () => {
     if (!over) return;
     soundRef.current.ui();
-    setShared(await shareScore(over.score));
+    const ok = await shareScore(over.score);
+    setShared(ok);
+    if (ok) logEvent('share', { score: over.score });
   };
 
   const toggleSound = () => {
@@ -320,6 +338,7 @@ export default function App() {
     if (!p || p.coins < price) return;
     soundRef.current.win();
     haptic('success');
+    logEvent('shop_buy', { kind, id, price });
     updateProgress((q) => ({
       ...q,
       coins: q.coins - price,

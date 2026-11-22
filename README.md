@@ -31,6 +31,7 @@
 - [x] 게임제작업 등록 완료 (북구보건소)
 - [x] v14(난이도 강화, 콤보 가속, 연타 버그 수정) 업로드, 웹·Microsoft Store 배포
 - [x] **v14 앱인토스 출시 (2026-11-23)**
+- [ ] v15: 이벤트 기록(전환 지표용)·리뷰 요청 추가 → 콘솔에 전환 지표 `daily_clear` 등록 → 검토 요청
 - [ ] 사업자등록, 앱인토스 사업자·정산 정보 등록 → **[docs/LAUNCH.md](docs/LAUNCH.md)**
 
 ## 게임 규칙
@@ -103,6 +104,22 @@
 - 초반이 너무 어렵다 → `perfectRatio()`의 시작값(0.09)을 올려요.
 - 잘하는 사람이 끝없이 간다 → `perfectRatio()`의 바닥값(0.02)을 내려요.
 - 실수 한 번이 너무 아프다 → `missPenalty` 값을 내려요.
+
+## 노출을 위한 이벤트 기록 (v15)
+
+토스 [노출 정책](https://developers-apps-in-toss.toss.im/guide/exposure)의 '추천 미니앱' 기준(재방문·전환율·리뷰)을 위해 `Analytics.log`로 이벤트를 남겨요(`src/platform/toss.ts`의 `logEvent`).
+
+| 이벤트 | 언제 | 값 |
+|---|---|---|
+| `game_start` | 판 시작 | `first_today` |
+| `game_over` | 판 끝 | `score`, `perfects`, `new_best`, `daily_cleared` |
+| `daily_clear` | 오늘의 도전 달성 (**전환 지표로 등록**) | `target` |
+| `attendance` | 그날 첫 판 | `days` (연속 출석) |
+| `ad_reward` | 보상형 광고 시청 완료 | `kind` (revive / double) |
+| `share` | 기록 공유 성공 | `score` |
+| `shop_buy` | 꾸미기 구매 | `kind`, `id`, `price` |
+
+- **리뷰 요청**: 이전 기록이 있는 사람이 20층 이상에서 최고 기록을 깼을 때, 결과 화면이 뜨고 1.5초 뒤 **평생 한 번** `Review.request`를 불러요.
 
 ## 트러블슈팅
 
