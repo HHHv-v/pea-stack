@@ -16,7 +16,7 @@
 
 ## 현재 상태
 
-현재 버전: **v14** (2026-11-23 앱인토스 출시 — 콘솔 빌드 v8~v14에 걸친 수정을 모은 버전). 토스·웹·Microsoft Store 모두 v14. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+현재 버전: **v15** (2026-11-23 앱인토스 출시). 토스·웹·Microsoft Store 모두 v15. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 - [x] 게임 규칙 확정 (꾹 눌러 채우기), 층수에 따라 점점 어려워지는 난이도
 - [x] React + 앱인토스 SDK 3.x 프로젝트, `pea-stack.ait` 빌드
@@ -31,8 +31,9 @@
 - [x] 게임제작업 등록 완료 (북구보건소)
 - [x] v14(난이도 강화, 콤보 가속, 연타 버그 수정) 업로드, 웹·Microsoft Store 배포
 - [x] **v14 앱인토스 출시 (2026-11-23)**
-- [ ] v15: 이벤트 기록(전환 지표용)·리뷰 요청 추가 → 콘솔에 전환 지표 `daily_clear` 등록 → 검토 요청
-- [ ] 사업자등록, 앱인토스 사업자·정산 정보 등록 → **[docs/LAUNCH.md](docs/LAUNCH.md)**
+- [x] **v15 출시 (2026-11-23)**: 이벤트 기록·리뷰 요청 추가, 콘솔 핵심 지표 등록(활성: 2일 이후 재방문 유저, 전환: 게임 플레이 완료한 유저)
+- [x] 게임제작업 등록증 수령, 홈택스 사업자등록 신청(2026-11-23, 처리 대기)
+- [ ] 사업자등록증 발급 후 앱인토스 사업자·정산 정보 등록 → **[docs/LAUNCH.md](docs/LAUNCH.md)**
 
 ## 게임 규칙
 
