@@ -456,13 +456,7 @@ export default function App() {
             )}
             {canDouble && (
               <button className="btn3d yellow" type="button" onClick={doubleCoins} disabled={!!adBusy}>
-                {adBusy === 'double' ? (
-                  '광고 불러오는 중'
-                ) : (
-                  <>
-                    <Coin size={18} /> 광고 보고 코인 2배 +{over.runCoins}
-                  </>
-                )}
+                {adBusy === 'double' ? '광고 불러오는 중' : `광고 보고 코인 2배 +${over.runCoins}`}
               </button>
             )}
             <button className="btn3d orange" type="button" onClick={start}>
