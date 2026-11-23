@@ -151,7 +151,7 @@ export default function App() {
         const runsLeft = progressRef.current ? coinRunsLeft(progressRef.current) : 0;
         submitScore(r.score);
         logEvent('game_over', { score: r.score, perfects: r.perfects, new_best: newBest && r.score > 0, daily_cleared: r.dailyCleared });
-        if (newBest && prevBest > 0 && r.score >= REVIEW_MIN_FLOOR) {
+        if ((newBest && prevBest > 0 && r.score >= REVIEW_MIN_FLOOR) || import.meta.env.VITE_REVIEW_TEST === '1') {
           // 결과 화면을 먼저 보여준 뒤 리뷰를 요청해요(이전 기록이 있는 사람이 기록을 깬 순간, 평생 한 번)
           window.setTimeout(() => void requestReviewOnce(), 1500);
         }

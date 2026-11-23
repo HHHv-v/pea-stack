@@ -280,6 +280,13 @@ let reviewAsked: boolean | null = null;
  * 지원하지 않는 토스 버전이거나 토스 밖이면 아무것도 하지 않아요.
  */
 export async function requestReviewOnce() {
+  if (import.meta.env.VITE_REVIEW_TEST === '1') {
+    // 테스트 빌드: 조건·1회 제한 없이 바로 요청해요(기록도 남기지 않아요)
+    attempt(() => Review.request()).catch(() => {
+      /* noop */
+    });
+    return;
+  }
   if (reviewAsked === null) reviewAsked = await loadValue(REVIEW_KEY, false);
   if (reviewAsked) return;
   let supported = false;
