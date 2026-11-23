@@ -16,7 +16,7 @@
 
 ## 현재 상태
 
-현재 버전: **v16** (2026-11-24, 시작 화면·게임오버 디자인 변경). 웹·Microsoft Store는 v16, 토스는 v16 검토 후 출시. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+현재 버전: **v17** (2026-11-24, 쌓기 문구 주아체). 웹·Microsoft Store는 v17, 토스는 v17 검토 후 출시(v16 내용 포함). 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 - [x] 게임 규칙 확정 (꾹 눌러 채우기), 층수에 따라 점점 어려워지는 난이도
 - [x] React + 앱인토스 SDK 3.x 프로젝트, `pea-stack.ait` 빌드
@@ -33,6 +33,7 @@
 - [x] **v14 앱인토스 출시 (2026-11-23)**
 - [x] **v15 출시 (2026-11-23)**: 이벤트 기록·리뷰 요청 추가, 콘솔 핵심 지표 등록(활성: 2일 이후 재방문 유저, 전환: 게임 플레이 완료한 유저)
 - [x] v16: 시작 화면·게임오버 팝업 디자인 변경 ([PR](https://github.com/HHHv-v/pea-stack/pulls?q=is%3Apr+v16))
+- [x] v17: 쌓기 문구('딱!'·'모자라!'·'넘쳤다!') 주아체 ([PR #2](https://github.com/HHHv-v/pea-stack/pull/2)), 웹·Microsoft Store 배포
 - [x] 게임제작업 등록증 수령, 사업자등록증 발급(2026-11-23)
 - [ ] 앱인토스 사업자·정산 정보 등록 (국세청 조회 반영 후 재시도) → **[docs/LAUNCH.md](docs/LAUNCH.md)**
 
