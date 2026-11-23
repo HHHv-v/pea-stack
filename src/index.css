@@ -83,8 +83,10 @@ button.chip {
 .chip.icon {
   display: grid;
   place-items: center;
-  width: 31px;
+  width: 34px;
+  height: 34px;
   padding: 0;
+  border-radius: 50%;
 }
 
 .hud {
@@ -875,7 +877,7 @@ button:focus-visible {
 .btn3d.pink {
   background: #ffe8e8;
   color: #1f1f1f;
-  box-shadow: 0 7px 0 #d9d4d4;
+  box-shadow: 0 7px 0 #ffd6d6;
 }
 
 .btn3d.yellow {
@@ -890,7 +892,7 @@ button:focus-visible {
 
 .btn3d.orange:active { box-shadow: 0 2px 0 var(--orange-deep); }
 .btn3d.white:active { box-shadow: 0 2px 0 #d6d6d6; }
-.btn3d.pink:active { box-shadow: 0 2px 0 #d9d4d4; }
+.btn3d.pink:active { box-shadow: 0 2px 0 #ffd6d6; }
 .btn3d.yellow:active { box-shadow: 0 2px 0 #e3cf8e; }
 
 .btn3d:disabled {
