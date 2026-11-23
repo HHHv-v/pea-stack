@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Shop, { Coin, PeaPreview } from './Shop';
 import { ACCS, type AccId, BEANS, type BeanId, isOwned, itemKey } from './game/cosmetics';
 import { PeaStackGame, STAGE_FLOORS } from './game/engine';
-import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, refreshDaily, saveProgress, spendCoinRun, streakBonus, streakIfPlayedToday, touchStreak } from './game/progress';
+import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, recordToday, refreshDaily, saveProgress, spendCoinRun, streakBonus, todayBestOf, touchStreak } from './game/progress';
+import bgUrl from './assets/ui/bg.webp';
+import peaUrl from './assets/ui/pea.webp';
+import titleUrl from './assets/ui/title.webp';
 import { Sound } from './game/sound';
 import {
   canOpenLeaderboard,
@@ -29,6 +32,7 @@ type Screen = 'home' | 'play' | 'over';
 interface OverInfo {
   score: number;
   newBest: boolean;
+  todayBest: boolean; // 오늘 최고 기록을 새로 세웠는지
   earned: number; // 이번에 받은 코인
   runCoins: number; // 이번 판(이어하기 포함) 전체 코인, 2배 광고 보상 기준
   earns: boolean; // 이번 판이 층·딱 코인을 받는 판이었는지
@@ -74,7 +78,6 @@ export default function App() {
   const [shared, setShared] = useState(false);
 
   const dailyDone = progress?.dailyDoneOn === dayKey();
-  const runsLeft = progress ? coinRunsLeft(progress) : COIN_RULES.runsPerDay;
   // 지금 코인으로 살 수 있는 새 꾸미기가 있으면 버튼에 점을 찍어요
   const canBuySomething =
     !!progress &&
@@ -135,6 +138,7 @@ export default function App() {
       onOver: (r) => {
         const prevBest = progressRef.current?.best ?? 0;
         const newBest = r.score > prevBest;
+        const newToday = r.score > todayBestOf(progressRef.current);
         // 이어하기로 같은 판이 다시 끝나도 코인이 두 번 들어오지 않게, 이번 판 누적에서 이미 준 만큼 빼요
         const run = runRef.current;
         const runCoins = coinsForRun({ ...r, earns: run.earns });
@@ -145,7 +149,7 @@ export default function App() {
         const spend = run.earns && !run.counted && r.score > 0;
         run.counted = true;
         updateProgress((p) => {
-          const q = { ...p, best: Math.max(p.best, r.score), coins: p.coins + earned };
+          const q = recordToday({ ...p, best: Math.max(p.best, r.score), coins: p.coins + earned }, r.score);
           return spend ? spendCoinRun(q) : q;
         });
         const runsLeft = progressRef.current ? coinRunsLeft(progressRef.current) : 0;
@@ -157,7 +161,7 @@ export default function App() {
         }
         setAdReady(isRewardedAdReady());
         setShared(false);
-        setOver({ score: r.score, newBest: newBest && r.score > 0, earned, runCoins, earns: run.earns, runsLeft, streak: run.streak });
+        setOver({ score: r.score, newBest: newBest && r.score > 0, todayBest: newToday && r.score > 0, earned, runCoins, earns: run.earns, runsLeft, streak: run.streak });
         setScreen('over');
       },
     });
@@ -372,10 +376,7 @@ export default function App() {
 
       {/* 오른쪽 위는 토스의 ··· ✕ 버튼 자리라 비워 둬요 */}
       <div className="topbar">
-        <span className="chip">최고 {best}층</span>
-        <span className="chip coin-chip" aria-label={`코인 ${progress?.coins ?? 0}개`}>
-          <Coin /> {progress?.coins ?? 0}
-        </span>
+        {screen !== 'home' && <span className="chip">최고 {best}층</span>}
         <button
           className="chip icon"
           type="button"
@@ -401,32 +402,37 @@ export default function App() {
       )}
 
       {screen === 'home' && !shopOpen && (
-        <div className="title-screen">
-          <button type="button" className="title-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="내 완두콩 보기">
-            <PeaPreview bean={progress?.bean ?? 'pea'} acc={progress?.acc ?? 'none'} size={128} mood="happy" />
-          </button>
-          <div className="title-bottom">
-            <h1 className="title-name">완두콩의 높이 쌓기</h1>
-            <p className="title-how">꾹 눌러 키우고, 같은 폭에서 손을 떼요</p>
-            <div className="stats">
-              <div className="stat">
-                <b>{progress?.best ?? 0}층</b>
-                <span>최고 기록</span>
-              </div>
-              <div className={dailyDone ? 'stat done' : 'stat'}>
-                <b>{target}층</b>
-                <span>{dailyDone ? '오늘 달성!' : '오늘의 도전'}</span>
-              </div>
-              <div className="stat streak">
-                <b>{progress?.streak ?? 0}일</b>
-                <span>연속 출석</span>
-              </div>
+        <div className="home" style={{ backgroundImage: `url(${bgUrl})` }}>
+          <div className="badges">
+            <div className="badge">
+              <span>최고 기록</span>
+              <b>{progress?.best ?? 0}층</b>
             </div>
-            <CoinNote progress={progress} runsLeft={runsLeft} />
-            <button className="btn" type="button" onClick={start} disabled={!progress}>
+            <div className="badge">
+              <span>오늘 기록</span>
+              <b>{todayBestOf(progress)}층</b>
+            </div>
+            <div className="badge">
+              <span>연속 출석</span>
+              <b>{progress?.streak ?? 0}일</b>
+            </div>
+          </div>
+          <h1 className="home-title">
+            <img src={titleUrl} alt="완두콩의 높이 쌓기" draggable={false} />
+          </h1>
+          <button type="button" className="home-pea" onClick={() => setShopOpen(true)} disabled={!progress} aria-label="내 완두콩 보기">
+            {progress && (progress.bean !== 'pea' || progress.acc !== 'none') ? (
+              <PeaPreview bean={progress.bean} acc={progress.acc} size={100} mood="happy" />
+            ) : (
+              <img src={peaUrl} alt="" draggable={false} />
+            )}
+          </button>
+          <div className="home-bottom">
+            <p className="home-how">꾹 눌러 스택을 키우고, 같은 폭에서 손을 떼요!</p>
+            <button className="btn3d orange" type="button" onClick={start} disabled={!progress}>
               쌓기 시작
             </button>
-            <button className="btn ghost" type="button" onClick={() => setShopOpen(true)} disabled={!progress}>
+            <button className="btn3d white" type="button" onClick={() => setShopOpen(true)} disabled={!progress}>
               완두콩 꾸미기
               {canBuySomething && <span className="new-dot" aria-label="살 수 있는 꾸미기가 있어요" />}
             </button>
@@ -435,64 +441,46 @@ export default function App() {
       )}
 
       {screen === 'over' && over && !shopOpen && (
-        <div className="sheet">
-          <div className="card">
-            <h2>{over.newBest ? '새 기록!' : over.score >= target ? '잘 쌓았어요!' : '아쉽다!'}</h2>
-            <div className="big">
+        <div className="over-dim">
+          <div className="over-card">
+            <h2>{over.newBest ? '새 최고 기록!' : over.todayBest ? '오늘의 최고 기록!' : over.score >= target ? '잘 쌓았어요!' : '아쉽다!'}</h2>
+            <div className="over-score">
               {over.score}
               <small>층</small>
             </div>
-            <p className="lead">
-              최고 {progress?.best ?? 0}층 · {dailyDone ? '오늘의 도전 달성' : `오늘의 도전까지 ${Math.max(0, target - over.score)}층`}
-            </p>
-            {over.earns || over.earned + (doubled ? over.runCoins : 0) > 0 ? (
-              <div className="earned">
-                <Coin size={18} /> +{over.earned + (doubled ? over.runCoins : 0)} 코인
-                {doubled && <span className="tag">2배!</span>}
-              </div>
-            ) : (
-              !over.earns && <div className="earned muted">오늘 코인은 다 받았어요</div>
-            )}
-            {over.streak && (
-              <div className="streak-bonus">
-                {over.streak.coins > 5 ? `${over.streak.days}일 연속 출석` : '오늘 출석'} <b>+{over.streak.coins}</b>
-              </div>
-            )}
-            <p className="coin-sub">
-              {over.earns
-                ? over.runsLeft > 0
-                  ? `오늘 코인 받는 판 ${over.runsLeft}번 남았어요`
-                  : `오늘 코인 받는 판을 다 썼어요. 내일 다시 ${COIN_RULES.runsPerDay}판!`
-                : dailyDone
-                  ? `내일 다시 ${COIN_RULES.runsPerDay}판 동안 코인을 받아요`
-                  : `오늘의 도전을 달성하면 ${COIN_RULES.dailyBonus}코인은 받을 수 있어요`}
-            </p>
+            <OverCoins over={over} doubled={doubled} dailyDone={dailyDone} />
             {canRevive && (
-              <button className="btn ghost" type="button" onClick={revive} disabled={!!adBusy}>
-                {adBusy === 'revive' ? '광고 불러오는 중' : '광고 보고 이어하기 (1회)'}
+              <button className="btn3d pink" type="button" onClick={revive} disabled={!!adBusy}>
+                {adBusy === 'revive' ? '광고 불러오는 중' : '광고 보고 이어서 쌓기'}
               </button>
             )}
             {canDouble && (
-              <button className="btn ghost" type="button" onClick={doubleCoins} disabled={!!adBusy}>
-                {adBusy === 'double' ? '광고 불러오는 중' : `광고 보고 코인 2배 (+${over.runCoins})`}
+              <button className="btn3d yellow" type="button" onClick={doubleCoins} disabled={!!adBusy}>
+                {adBusy === 'double' ? (
+                  '광고 불러오는 중'
+                ) : (
+                  <>
+                    <Coin size={18} /> 광고 보고 코인 2배 +{over.runCoins}
+                  </>
+                )}
               </button>
             )}
-            <button className="btn" type="button" onClick={start}>
+            <button className="btn3d orange" type="button" onClick={start}>
               다시 쌓기
             </button>
-            <div className="links">
-              <button className="link" type="button" onClick={() => setShopOpen(true)}>
+            <div className="over-links">
+              <button type="button" onClick={() => setShopOpen(true)}>
                 꾸미기
                 {canBuySomething && <span className="new-dot" aria-label="살 수 있는 꾸미기가 있어요" />}
               </button>
               {over.score > 0 && (
-                <button className="link" type="button" onClick={share}>
+                <button type="button" onClick={share}>
                   {shared ? '공유했어요' : '기록 공유하기'}
                 </button>
               )}
               {canOpenLeaderboard() && (
-                <button className="link" type="button" onClick={openLeaderboard}>
-                  순위 보기
+                <button type="button" onClick={openLeaderboard}>
+                  순위보기
                 </button>
               )}
             </div>
@@ -532,22 +520,22 @@ export default function App() {
   );
 }
 
-/** 시작 화면: 오늘 코인을 몇 판 더 받을 수 있는지 */
-function CoinNote({ progress, runsLeft }: { progress: Progress | null; runsLeft: number }) {
+/** 게임오버: 코인 받는 판(●●●)과 이번 판 코인 */
+function OverCoins({ over, doubled, dailyDone }: { over: OverInfo; doubled: boolean; dailyDone: boolean }) {
   const total = COIN_RULES.runsPerDay;
-  const playedToday = progress?.lastPlayed === dayKey();
-  const attend = !playedToday && progress ? streakBonus(streakIfPlayedToday(progress)) : 0;
+  const got = over.earned + (doubled ? over.runCoins : 0) + (over.streak?.coins ?? 0);
+  let text: string;
+  if (got > 0) text = `+${got} 코인${doubled ? ' (2배!)' : ''}${over.streak ? ` · 출석 +${over.streak.coins}` : ''}`;
+  else if (over.runsLeft > 0) text = `코인 받는 판 ${over.runsLeft}번 남음`;
+  else text = dailyDone ? '오늘 코인 판은 끝' : `오늘의 도전 달성 시 +${COIN_RULES.dailyBonus}`;
   return (
-    <p className="coin-note">
+    <p className="over-coins">
       <span className="dots" aria-hidden="true">
         {Array.from({ length: total }, (_, i) => (
-          <span key={i} className={i < total - runsLeft ? 'dot used' : 'dot'}>
-            <Coin size={14} />
-          </span>
+          <span key={i} className={i < total - over.runsLeft ? 'dot used' : 'dot'} />
         ))}
       </span>
-      {runsLeft > 0 ? `코인 받는 판 ${runsLeft}번 남음` : '오늘 코인 판은 끝'}
-      {attend > 0 && <em>출석 +{attend}</em>}
+      {text}
     </p>
   );
 }

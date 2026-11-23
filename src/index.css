@@ -711,3 +711,305 @@ button:focus-visible {
 .stat.streak b {
   color: var(--accent);
 }
+
+/* ===================== v16 시작 화면 · 게임오버 (디자인 시안) ===================== */
+:root {
+  --jua: 'Jua', var(--font);
+  --orange: #ff7a32;
+  --orange-deep: #d4581f;
+}
+
+.topbar {
+  z-index: 5;
+}
+
+.home {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: max(88px, calc(var(--safe-top) + 44px)) 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  background: #8fd0ff center / cover no-repeat;
+  font-family: var(--jua);
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+}
+
+.badge {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  margin: 0 -1.5px;
+  border-radius: 50%;
+  background: #c6ec8f;
+  border: 4px solid #7dbb4e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #2b2b2b;
+}
+
+.badge::before {
+  /* 왼쪽 위 광택 */
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 17px;
+  width: 22px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  transform: rotate(-22deg);
+}
+
+.badge span {
+  font-size: 11px;
+  color: #6b7d58;
+  margin-top: 8px;
+}
+
+.badge b {
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-title {
+  margin: clamp(28px, 10vh, 90px) 0 0;
+  width: 72vw;
+  max-width: 340px;
+}
+
+.home-title img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 6px 0 rgba(90, 170, 230, 0.55));
+}
+
+.home-pea {
+  margin: 22px 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  width: 100px;
+  height: 100px;
+  animation: pea-bob 2.4s ease-in-out infinite;
+}
+
+.home-pea img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes pea-bob {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-pea {
+    animation: none;
+  }
+}
+
+.home-bottom .btn3d {
+  font-size: 19px;
+  min-height: 54px;
+}
+
+.home-bottom {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-how {
+  margin: 0 0 -6px;
+  text-align: center;
+  font-size: 15px;
+  color: #1f1f1f;
+}
+
+/* 아래쪽에 두께가 있는 입체 버튼 */
+.btn3d {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 22px;
+  font: 400 18px/1.2 var(--jua);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.btn3d.orange {
+  background: var(--orange);
+  color: #fff;
+  box-shadow: 0 7px 0 var(--orange-deep);
+}
+
+.btn3d.white {
+  background: #fff;
+  color: #1f1f1f;
+  box-shadow: 0 7px 0 #d6d6d6;
+}
+
+.btn3d.pink {
+  background: #ffe8e8;
+  color: #1f1f1f;
+  box-shadow: 0 7px 0 #d9d4d4;
+}
+
+.btn3d.yellow {
+  background: #fff3cc;
+  color: #1f1f1f;
+  box-shadow: 0 7px 0 #e3cf8e;
+}
+
+.btn3d:active {
+  transform: translateY(5px);
+}
+
+.btn3d.orange:active { box-shadow: 0 2px 0 var(--orange-deep); }
+.btn3d.white:active { box-shadow: 0 2px 0 #d6d6d6; }
+.btn3d.pink:active { box-shadow: 0 2px 0 #d9d4d4; }
+.btn3d.yellow:active { box-shadow: 0 2px 0 #e3cf8e; }
+
+.btn3d:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn3d .new-dot {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+}
+
+/* ---------- 게임오버 팝업 ---------- */
+.over-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 0 18px;
+  background: rgba(30, 20, 10, 0.38);
+  font-family: var(--jua);
+  animation: dim-in 0.2s ease-out;
+}
+
+@keyframes dim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.over-card {
+  width: 100%;
+  max-width: 400px;
+  background: #fafafa;
+  border-radius: 22px;
+  padding: 30px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  animation: card-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes card-in {
+  from {
+    transform: translateY(16px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+.over-card h2 {
+  margin: 0;
+  font: 400 22px/1.2 var(--jua);
+  color: var(--orange);
+}
+
+.over-score {
+  font: 400 60px/1 var(--jua);
+  color: #111;
+  margin: 4px 0 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.over-score small {
+  font-size: 24px;
+  margin-left: 4px;
+}
+
+.over-coins {
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 15px;
+  color: #6f6f6f;
+}
+
+.over-coins .dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.over-coins .dot {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffc531;
+  box-shadow: inset 0 -2px 0 #e0a419;
+}
+
+.over-coins .dot.used {
+  background: #9b9b9b;
+  box-shadow: none;
+}
+
+.over-card .btn3d {
+  min-height: 48px;
+  font-size: 17px;
+}
+
+.over-card .btn3d + .btn3d {
+  margin-top: 2px;
+}
+
+.over-links {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 8px;
+}
+
+.over-links button {
+  border: 0;
+  background: none;
+  font: 400 15px/1 var(--jua);
+  color: #6f6f6f;
+  padding: 8px 6px;
+  cursor: pointer;
+}

@@ -30,6 +30,8 @@ export interface Progress {
   owned: string[]; // 'bean:soy', 'acc:crown' 같은 형식
   bean: BeanId;
   acc: AccId;
+  todayBest: number; // 오늘 최고 기록
+  todayBestDay: string; // todayBest를 기록한 날짜
 }
 
 const EMPTY: Progress = {
@@ -46,6 +48,8 @@ const EMPTY: Progress = {
   owned: [],
   bean: 'pea',
   acc: 'none',
+  todayBest: 0,
+  todayBestDay: '',
 };
 
 /** 기록은 토스 사용자 키별로 따로 저장해요. */
@@ -115,4 +119,15 @@ export function streakBonus(streak: number) {
 /** 오늘 한 판 하면(했으면) 연속 출석이 며칠째가 되는지 */
 export function streakIfPlayedToday(p: Progress) {
   return touchStreak(p).streak;
+}
+
+/** 오늘 최고 기록(날짜가 바뀌면 0) */
+export function todayBestOf(p: Progress | null, today = dayKey()) {
+  return p && p.todayBestDay === today ? p.todayBest : 0;
+}
+
+/** 이번 판 점수로 오늘 최고 기록을 갱신해요. */
+export function recordToday(p: Progress, score: number, today = dayKey()): Progress {
+  const cur = todayBestOf(p, today);
+  return score > cur ? { ...p, todayBest: score, todayBestDay: today } : p;
 }
