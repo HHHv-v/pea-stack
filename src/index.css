@@ -1011,10 +1011,10 @@ button:focus-visible {
   border: 0;
   background: none;
   font: 400 15px/1 var(--jua);
-  color: #6f6f6f;
+  color: #8f8f8f;
   padding: 8px 6px;
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: underline #8f8f8f;
   text-underline-offset: 4px;
-  text-decoration-thickness: 1.5px;
+  text-decoration-thickness: 1px;
 }
