@@ -16,7 +16,7 @@
 
 ## 현재 상태
 
-현재 버전: **v15** (2026-11-23 앱인토스 출시). 토스·웹·Microsoft Store 모두 v15. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+현재 버전: **v16** (2026-11-24, 시작 화면·게임오버 디자인 변경). 웹·Microsoft Store는 v16, 토스는 v16 검토 후 출시. 버전별 변경 내용은 [docs/CHANGELOG.md](docs/CHANGELOG.md). 작업 기록은 [docs/PROGRESS.md](docs/PROGRESS.md), 문제 해결 기록은 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 - [x] 게임 규칙 확정 (꾹 눌러 채우기), 층수에 따라 점점 어려워지는 난이도
 - [x] React + 앱인토스 SDK 3.x 프로젝트, `pea-stack.ait` 빌드
@@ -32,6 +32,7 @@
 - [x] v14(난이도 강화, 콤보 가속, 연타 버그 수정) 업로드, 웹·Microsoft Store 배포
 - [x] **v14 앱인토스 출시 (2026-11-23)**
 - [x] **v15 출시 (2026-11-23)**: 이벤트 기록·리뷰 요청 추가, 콘솔 핵심 지표 등록(활성: 2일 이후 재방문 유저, 전환: 게임 플레이 완료한 유저)
+- [x] v16: 시작 화면·게임오버 팝업 디자인 변경 ([PR](https://github.com/HHHv-v/pea-stack/pulls?q=is%3Apr+v16))
 - [x] 게임제작업 등록증 수령, 사업자등록증 발급(2026-11-23)
 - [ ] 앱인토스 사업자·정산 정보 등록 (국세청 조회 반영 후 재시도) → **[docs/LAUNCH.md](docs/LAUNCH.md)**
 
@@ -179,6 +180,8 @@ android/               (예전) 등급분류용 Capacitor 안드로이드 프로
 prototype/             초기 한 장짜리 HTML 프로토타입
 docs/LAUNCH.md         출시까지 남은 일
 docs/CHANGELOG.md      버전별 변경 내역(출시 노트)
+src/assets/ui/          시작 화면 이미지(배경·타이틀·완두콩, 배경 제거한 webp)
+.github/                PR 템플릿
 docs/PROGRESS.md       버전별 작업 기록
 docs/TROUBLESHOOTING.md 문제 원인·해결 기록
 ```
