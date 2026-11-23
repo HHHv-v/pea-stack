@@ -3,6 +3,9 @@ import { type AccId, type BeanId, accStyle, beanStyle, drawAccBack, drawAccFront
 
 export const BH = 38; // 한 층의 높이(px)
 export const FONT = "'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', sans-serif";
+// 배민 주아체(OFL). main.tsx에서 @fontsource/jua를 불러와요. 캔버스에서 쓰기 전에 미리 받아 둬요.
+export const JUA = "'Jua', 'Pretendard Variable', Pretendard, sans-serif";
+if (typeof document !== 'undefined') void document.fonts?.load(`400 22px 'Jua'`);
 
 type RGB = [number, number, number];
 export type Mood = 'calm' | 'happy' | 'shock';

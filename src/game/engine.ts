@@ -9,7 +9,7 @@
  * - 블록마다 자라는 속도가 달라서 박자로 외울 수 없어요.
  */
 import type { HapticFeedbackType } from '@apps-in-toss/web-framework';
-import { BH, FONT, type Mood, clamp01, drawPea, drawPot, drawSky, drawSlab, isNightSky, roundRect, skyColors, skyFloor } from './draw';
+import { BH, FONT, JUA, type Mood, clamp01, drawPea, drawPot, drawSky, drawSlab, isNightSky, roundRect, skyColors, skyFloor } from './draw';
 import type { AccId, BeanId } from './cosmetics';
 import type { Sound } from './sound';
 
@@ -528,7 +528,7 @@ export class PeaStackGame {
         continue;
       }
       ctx.globalAlpha = k < 0.8 ? 1 : (1 - k) * 5;
-      ctx.font = `800 ${f.big ? 28 : 22}px ${FONT}`;
+      ctx.font = `400 ${f.big ? 28 : 22}px ${JUA}`;
       ctx.lineWidth = 5;
       ctx.lineJoin = 'round';
       ctx.strokeStyle = 'rgba(43,37,64,.85)';
