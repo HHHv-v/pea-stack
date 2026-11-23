@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Shop, { Coin, PeaPreview } from './Shop';
+import Shop, { PeaPreview } from './Shop';
 import { ACCS, type AccId, BEANS, type BeanId, isOwned, itemKey } from './game/cosmetics';
 import { PeaStackGame, STAGE_FLOORS } from './game/engine';
 import { COIN_RULES, type Progress, coinRunsLeft, coinsForRun, dayKey, loadProgress, recordToday, refreshDaily, saveProgress, spendCoinRun, streakBonus, todayBestOf, touchStreak } from './game/progress';
