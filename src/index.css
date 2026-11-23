@@ -1014,4 +1014,7 @@ button:focus-visible {
   color: #6f6f6f;
   padding: 8px 6px;
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1.5px;
 }
