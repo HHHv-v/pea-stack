@@ -1,4 +1,4 @@
-@import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 :root {
   /* 화면 전체가 캔버스, 그 위에 층수 HUD와 종이 카드 한 장만 떠요 */
@@ -9,7 +9,9 @@
   --mint: #2fa886;
   --muted: #7a7390;
   --safe-top: env(safe-area-inset-top, 0px);
-  --font: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font:
+    "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
   color-scheme: light;
 }
 
@@ -279,7 +281,9 @@ button.chip {
   background: var(--accent);
   color: #fff;
   box-shadow: 0 6px 0 var(--accent-deep);
-  transition: transform 0.06s, box-shadow 0.06s;
+  transition:
+    transform 0.06s,
+    box-shadow 0.06s;
 }
 
 .btn:active {
@@ -580,7 +584,8 @@ button:focus-visible {
   align-items: center;
   justify-content: flex-end;
   gap: 28px;
-  padding: calc(64px + var(--safe-top)) 20px calc(64px + env(safe-area-inset-bottom));
+  padding: calc(64px + var(--safe-top)) 20px
+    calc(64px + env(safe-area-inset-bottom));
   pointer-events: none;
 }
 
@@ -608,12 +613,19 @@ button:focus-visible {
 }
 
 @keyframes pea-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .title-pea { animation: none; }
+  .title-pea {
+    animation: none;
+  }
 }
 
 .title-bottom {
@@ -716,7 +728,7 @@ button:focus-visible {
 
 /* ===================== v16 시작 화면 · 게임오버 (디자인 시안) ===================== */
 :root {
-  --jua: 'Jua', var(--font);
+  --jua: "Jua", var(--font);
   --orange: #ff7a32;
   --orange-deep: #d4581f;
 }
@@ -731,7 +743,8 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: max(88px, calc(var(--safe-top) + 44px)) 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  padding: max(88px, calc(var(--safe-top) + 44px)) 22px
+    calc(env(safe-area-inset-bottom, 0px) + 28px);
   background: #8fd0ff center / cover no-repeat;
   font-family: var(--jua);
 }
@@ -759,7 +772,7 @@ button:focus-visible {
 
 .badge::before {
   /* 왼쪽 위 광택 */
-  content: '';
+  content: "";
   position: absolute;
   top: 9px;
   left: 17px;
@@ -849,8 +862,10 @@ button:focus-visible {
 .btn3d {
   position: relative;
   width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
   min-height: 52px;
-  padding: 12px 16px;
+  padding: 14px 16px 12px 16px;
   border: 0;
   border-radius: 22px;
   font: 400 18px/1.2 var(--jua);
@@ -858,28 +873,27 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  gap: 8px;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
 }
 
+/* 다시 쌓기*/
 .btn3d.orange {
   background: var(--orange);
   color: #fff;
   box-shadow: 0 7px 0 var(--orange-deep);
 }
 
-.btn3d.white {
-  background: #fff;
-  color: #1f1f1f;
-  box-shadow: 0 7px 0 #d6d6d6;
-}
-
+/* 광고 보고 이어서 쌓기*/
 .btn3d.pink {
   background: #ffe8e8;
   color: #1f1f1f;
   box-shadow: 0 7px 0 #eeafaf;
 }
 
+/* 광고 보고 코인 2배*/
 .btn3d.yellow {
   background: #fff3cc;
   color: #1f1f1f;
@@ -890,10 +904,15 @@ button:focus-visible {
   transform: translateY(5px);
 }
 
-.btn3d.orange:active { box-shadow: 0 2px 0 var(--orange-deep); }
-.btn3d.white:active { box-shadow: 0 2px 0 #d6d6d6; }
-.btn3d.pink:active { box-shadow: 0 2px 0 #eeafaf; }
-.btn3d.yellow:active { box-shadow: 0 2px 0 #e3cf8e; }
+.btn3d.orange:active {
+  box-shadow: 0 2px 0 var(--orange-deep);
+}
+.btn3d.pink:active {
+  box-shadow: 0 2px 0 #eeafaf;
+}
+.btn3d.yellow:active {
+  box-shadow: 0 2px 0 #e3cf8e;
+}
 
 .btn3d:disabled {
   opacity: 0.6;
@@ -1003,10 +1022,12 @@ button:focus-visible {
 
 .over-links {
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 30px;
   margin-top: 8px;
 }
 
+/*꾸미기, 기록 공유하기, 순위보기*/
 .over-links button {
   border: 0;
   background: none;
@@ -1016,5 +1037,5 @@ button:focus-visible {
   cursor: pointer;
   text-decoration: underline #8f8f8f;
   text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: 2px;
 }
