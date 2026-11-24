@@ -806,7 +806,8 @@ button:focus-visible {
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 6px 0 rgba(90, 170, 230, 0.55));
+  /* 그림자는 이제 title.webp 안에 미리 그려져 있어요(런타임 drop-shadow는 웹뷰에서
+     이미지 로드 타이밍에 따라 간헐적으로 잘려 보이는 문제가 있었어요). */
 }
 
 .home-pea {
