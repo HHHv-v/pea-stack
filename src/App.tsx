@@ -502,7 +502,7 @@ export default function App() {
             </div>
           </div>
           <h1 className="home-title">
-            <img src={titleUrl} alt="완두콩의 높이 쌓기" draggable={false} />
+            <img src={titleUrl} alt="완두콩의 높이 쌓기" draggable={false} width={900} height={528} />
           </h1>
           <button
             type="button"
